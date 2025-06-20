@@ -1,15 +1,16 @@
-# **MSc-Thesis:** On the simulation of GIT-Templates for BSc-Theses
-**Author:** *Benedikt Ehinger*
+# **MSc-Thesis:** Simulation of a selection of  EEG artifacts, including eye movements and power line noise
 
-**Supervisor(s):** *Supervisor 1*, *Supervisor 2*
+**Author:** *Maanik Marathe*
 
-**Year:** *2022*
+**Supervisors:** *Jun.-Prof. Dr. rer. nat. Benedikt Ehinger*, *Judith Schepers, M.Sc.*
+
+**Year:** *2025*
 
 ## Project Description
->provide a short description of the main goals - just copy from the proposal
+Given a set of chosen EEG artifacts (eye movement, power line noise and electrode drift), we try to first understand their characteristics and then simulate them. The simulation should be implemented in a way that is standardized and compatible with UnfoldSim.jl, an existing open-source EEG simulation package. It should also provide a format for specifying the higher-level properties of the artifact simulation (e.g. onset, frequency of occurrence, correlation with other artifacts, etc).
 
-## Zotero Library Path
->Please provide the link to the Zotero group here or include a `Bib`-File in the `report` folder
+## Bibliography
+See `report/typst-template/refs.bib`.
 
 ## Instruction for a new student
 >If a fellow student wants to reproduce all your results. What scripts, in which order, with which data need to be run?
