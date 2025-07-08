@@ -26,3 +26,6 @@ docs/site/
 
 # VSCode
 *.code-workspace
+
+# EEG/ET data
+_research/data
