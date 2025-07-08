@@ -1,5 +1,8 @@
+# For helper function to read in the large model
 # using HDF5
 # using DataFrames
+
+# for angle conversion - need to check if we still need this or if the simple angle conversion util code will suffice
 # using CartesianFromSpherical
 
 function read_new_hartmut(;p = "HArtMuT_NYhead_large_fibers.mat")
@@ -79,6 +82,7 @@ function read_eyemodel(;p = "HArtMuT_NYhead_extra_eyemodel.mat")
     hartmut = read(file,"eyemodel")
     close(file)
     hartmut["label"] = hartmut["labels"]
+    delete!(hartmut,"labels")
     hartmut
 end
 
@@ -240,15 +244,17 @@ end
 function sim_gazevecs_ensemble() # TODO rename this and turn it into a proper function. For now, moved here from pluto notebook
 # simulate for gazevectors - ensemble method
 
+    sim_srcs_idx = [eyemodel["eyeleft_idx"]; eyemodel["eyeright_idx"]] # indices in eyemodel, of the points which we want to use to simulate data, i.e. retina & cornea. used for ensemble simulation. 
+
 	# leadfield for centre, to subtract for B-A method
 	lf_center = leadfield_from_gazedir(eyemodel, sim_srcs_idx, gazevec_from_angle(0), 54.0384).*10e3
 
 	# leadfields: matrix of dimensions [electrodes x n_gazepoints] 
 	leadfields_ensemble = zeros(227,length(gazevectors))
-	for ix in 1:length(gazevectors) 
+	for ix in eachindex((gazevectors)) # 1:length(gazevectors) #TODO delete this comment once it's proven to work 
 		# for each gazepoint, calculate the leadfield and store it in the corresponding column
 		leadfields_ensemble[:,ix] = leadfield_from_gazedir(eyemodel, sim_srcs_idx,
-			gazevectors[ix], 54.0384).*10e3
+			gazevectors[ix], 54.0384)
 	end
 
 	# calculate difference from centre gaze
@@ -257,7 +263,7 @@ function sim_gazevecs_ensemble() # TODO rename this and turn it into a proper fu
 		lf_ensemble_diff[:,ix] = leadfields_ensemble[:,ix] - lf_center
 	end
 	
-	"@NOTE calculating ensemble leadfields"
+	# "@NOTE calculating ensemble leadfields"
 end
 
 function plot_toposeries_lf(lf)
@@ -296,4 +302,130 @@ end
 # set_theme!()
 # set_theme!(figure_padding = (10,100,10,10)) # for selected electrode plots, the legend overlaps the figure - add padding to accommodate this
 
+function find_avg_gazedir()
+    # finding cornea centers and approximate gaze direction (as mean of cornea orientations)
+    cornea_center_R = Statistics.mean(eyemodel["pos"][lsi_eyemodel["EyeCornea_right"],:],dims=1)
+    cornea_center_L = Statistics.mean(eyemodel["pos"][lsi_eyemodel["EyeCornea_left"],:],dims=1)
+    gazedir_R = mean(eyemodel["orientation"][lsi_eyemodel["EyeCornea_right"],:], dims=1).*10
+    gazedir_L = mean(eyemodel["orientation"][lsi_eyemodel["EyeCornea_left"],:], dims=1).*10
+end
 
+function import_model()
+
+    # labels for which to find source indices
+    labels = [
+                r"EyeRetina_Choroid_Sclera_left$" # match the end of the search term, or else it also matches "leftright" sources.
+				,r"EyeRetina_Choroid_Sclera_right$"
+				,"EyeCornea_left" # new spherical eyemodel - only one set of sources per eye and the labels are different
+				,"EyeCornea_right" # same as above
+				,"EyeCenter_right"
+				,"EyeCenter_left"
+			]
+   
+    eyemodel = read_eyemodel(; p="HArtMuT_NYhead_extra_eyemodel_hull_mesh8_2025-03-01.mat")
+    remove_indices = [164, 165, 166, 167] # since eyemodel structure doesn't exactly correspond to the main hartmut mat structure expected by the read_new_hartmut function, just get the indices of the electrodes that it drops & drop the same indices from eyemodel directly 
+    eyemodel["leadfield"] = eyemodel["leadfield"][Not(remove_indices), :, :]
+
+    lsi_eyemodel = hart_indices_from_labels(eyemodel,labels) 
+
+    # import small headmodel temporarily for electrode positions, since eyemodel does not include them
+	hart_small = UnfoldSim.headmodel()
+	pos3d = hart_small.electrodes["pos"]
+	electrode_pos = pos2dfrom3d(pos3d)
+
+    return eyemodel, electrode_pos, lsi_eyemodel
+end
+
+"""
+Calculate left/right eye indices, eye centers, orientations and add them to the eyemodel
+"""
+function setup_eyemodel(eyemodel, lsi_eyemodel)
+
+	eyemodel_left_idx = [ 
+		lsi_eyemodel["EyeCornea_left"] ; lsi_eyemodel[r"EyeRetina_Choroid_Sclera_left$"] 
+	]
+	eyemodel_right_idx = [ 
+		lsi_eyemodel["EyeCornea_right"] ; lsi_eyemodel[r"EyeRetina_Choroid_Sclera_right$"] 
+	]
+
+	# For calculating orientations: get positions of left and right eye points in eyemodel, and their center (provided directly in spherical model)
+	em_positions_L = eyemodel["pos"][eyemodel_left_idx,:]
+	em_positions_R = eyemodel["pos"][eyemodel_right_idx,:]
+	
+	eye_center_L = eyemodel["pos"][lsi_eyemodel["EyeCenter_left"],:]
+	eye_center_R = eyemodel["pos"][lsi_eyemodel["EyeCenter_right"],:]
+
+	# calculate orientations away from center, later use negative weightage for the points where the source dipole points towards the center.
+	eyemodel["orientation"] = zeros(size(eyemodel["pos"]))
+	eyemodel["orientation"][eyemodel_right_idx,:] = calc_orientations(eye_center_R, em_positions_R; direction="away") 
+	eyemodel["orientation"][eyemodel_left_idx,:] = calc_orientations(eye_center_L, em_positions_L; direction="away")
+    eyemodel["eyeleft_idx"] = eyemodel_left_idx
+    eyemodel["eyeright_idx"] = eyemodel_right_idx
+    eyemodel["eyecenter_left_pos"] = eye_center_L
+    eyemodel["eyecenter_right_pos"] = eye_center_R
+
+    return eyemodel
+
+end
+
+function simulate_crd(gazevectors) # TODO add type & dimensions
+    leadfields_crd = zeros(227,length(gazevectors)) # TODO replace hardcoded 227 with number of channels in model?
+	eyecenter_idx = [lsi_eyemodel["EyeCenter_left"][1],lsi_eyemodel["EyeCenter_right"][1]] #TODO remove duplication of calculating center indices
+	
+	for ix in eachindex(gazevectors) # 1:length(gazevectors) #TODO delete this comment once it's proven to work
+		# calculate leadfield due to 2 individual CRD sources and add
+		leadfields_crd[:,ix] = (
+			leadfield_specific_sources_orientations(deepcopy(eyemodel),eyecenter_idx,gazevectors[ix])
+		)
+	end
+
+    return leadfields_crd
+end
+
+function leadfield_specific_sources_orientations(model,idx,equiv_orientations)
+	# take just a selected subset of points in the model, along with a new orientation for those points, and calculate the sum of leadfields of just these points with the given orientation. 
+    equiv_ori_model = model["orientation"]
+    
+    for ii in idx
+        equiv_ori_model[ii,:] = equiv_orientations[:]
+    end
+    
+    mag_eyemodel_equiv = magnitude(eyemodel["leadfield"],equiv_ori_model)
+    mag = sum(mag_eyemodel_equiv[:,ii] for ii in idx)
+    return mag
+end
+
+
+
+# ------------------------ for later reference
+
+# difference wrt CPz (index 48)
+# d1 = zeros(size(leadfields))
+# for ix in 1:227
+# 	d1[ix,:] = leadfields[ix,:] - leadfields[48,:]
+# end
+
+# difference between samples (consecutive angles)
+# d2 = diff(leadfields,dims=2)
+# fig_lineplots5, ax5, sp5 = series(gaze_angles_horiz[30:60],d2[electrode_indices,30:60];labels=hart_small.electrodes["label"][electrode_indices], color=:Set1)
+# # series!(,d1[48,:];labels=["CPz"], color=:Set1)
+# ax5.title = "Potential difference from prev.sample i.e. angle"
+# axislegend(ax5; position=(1.29,0.5))
+# fig_lineplots5
+# leadfields
+# d2
+# @info "plotting potential difference from one sample (angle) to the next: just haphazardly went up and down, does not seem to be a good direction to go" 
+
+
+# ------------------------
+
+# WGLMakie.Page() # to fix issue of 3d plots not rendering properly
+
+# ------------------------
+
+
+# ------------------------
+
+# ------------------------
+
+# ------------------------

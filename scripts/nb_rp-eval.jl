@@ -56,105 +56,25 @@ Steps:
 =#
 end
 
-# ╔═╡ b34dd987-fc86-4c0c-b0fd-ee7f10983734
+# ╔═╡ 98b56171-6eda-4d9b-89bf-5c3098fa37f1
 begin
-	# Search source labels for specific keywords and find the indices of those sources
-	
-	# (NOTE the property name is 'labels' in the original hartmut file, but 'label' in the UnfoldSim hartmut headmodel.)
-	labels = [	#"Cornea"
-				#,"Retina"
-				# ,"leftright" # all combined sources. does not split between retina & cornea.
-				r"EyeRetina_Choroid_Sclera_left$" # match the end of the search term, or else it also matches "leftright" sources.
-				,r"EyeRetina_Choroid_Sclera_right$"
-				,"EyeCornea_left" # new spherical eyemodel - only one set of sources per eye and the labels are different
-				,"EyeCornea_right" # same as above
-				,"EyeCenter_right"
-				,"EyeCenter_left"
-			]
-	"set the list of labels for which we will pre-find indices"
+	eyemodel, electrode_pos, lsi_eyemodel = import_model()
 end
 
-# ╔═╡ fa7aaded-fcd1-4049-a611-462115614910
-begin
-	eyemodel = read_eyemodel(; p="HArtMuT_NYhead_extra_eyemodel_hull_mesh8_2025-03-01.mat")
-	# eyemodel = read_eyemodel(; p="HArtMuT_NYhead_extra_eyemodel_sphere_mesh8_2025-03-01.mat")
-	remove_indices = [164, 165, 166, 167] # since eyemodel structure doesn't exactly correspond to the main hartmut mat structure expected by the read_new_hartmut function, just get the indices of the electrodes that it drops & drop the same indices from eyemodel directly 
-	eyemodel["leadfield"] = eyemodel["leadfield"][Not(remove_indices), :, :]
-	"load eyemodel and remove electrodes like in read_new_hartmut"
-end
+# ╔═╡ 2cf0e611-56b4-4b96-a43c-519d683251d5
+setup_eyemodel(eyemodel, lsi_eyemodel)
 
-# ╔═╡ 05a80c04-af93-47f3-99db-83c0b5a6b920
+# ╔═╡ 70ad93a5-3f94-4fdc-b3c3-5ca7a503485c
 eyemodel
 
-# ╔═╡ 3756412a-0715-4ae4-9e32-f46978e60a38
-begin
-	# import small headmodel temporarily for electrode positions, since eyemodel does not include them
-	hart_small = UnfoldSim.headmodel()
-	pos3d = hart_small.electrodes["pos"]
-	electrode_pos = pos2dfrom3d(pos3d)
-	"get electrode positions from small headmodel"
-end
-
-# ╔═╡ fe8025c9-3f52-401f-bbdb-60d0dffafd2a
-begin
-	# find indices for specific source labels
-	lsi_eyemodel = hart_indices_from_labels(eyemodel,labels) 
-end
-
 # ╔═╡ 13c37f0e-aedb-46be-9e50-9955536041de
-# WGLMakie.Page() # to fix issue of 3d plots not rendering properly
+
 
 # ╔═╡ 28f897bc-1c6d-4c10-888b-c83060c3389b
 begin
 	# Steps to simulate trajectory:
 	# - calculate set of gaze direction vectors, here from a pure set of angles in a specified range
 	# - simulate leadfields for each gazedir vector
-end
-
-# ╔═╡ 6eb97701-d8e2-4ef9-b518-1e346246cc53
-begin
-	# calculating: left/right eye indices, eye centroids, gaze directions
-	
-	eyemodel_left_idx = [ 
-		lsi_eyemodel["EyeCornea_left"] ; lsi_eyemodel[r"EyeRetina_Choroid_Sclera_left$"] 
-	]
-	eyemodel_right_idx = [ 
-		lsi_eyemodel["EyeCornea_right"] ; lsi_eyemodel[r"EyeRetina_Choroid_Sclera_right$"] 
-	]
-	sim_srcs_idx = [eyemodel_left_idx; eyemodel_right_idx] # indices in eyemodel, of the points which we want to use to simulate data, i.e. retina & cornea
-
-	# For calculating orientations: get positions of left and right Retina&Cornea points in eyemodel, and their centroid (centroid is not used now in favour of eye center points provided in spherical model)
-	em_positions_L = eyemodel["pos"][eyemodel_left_idx,:]
-	em_positions_R = eyemodel["pos"][eyemodel_right_idx,:]
-	
-	eye_center_L = eyemodel["pos"][lsi_eyemodel["EyeCenter_left"],:]
-	eye_center_R = eyemodel["pos"][lsi_eyemodel["EyeCenter_right"],:]
-
-	"calculate left/right eye indices, eye centre, gaze directions" 
-end
-
-# ╔═╡ a3deace1-21a2-4c5a-a68a-84e31360d986
-begin
-	# calculate orientations wrt centre
-	# calculate all orientations away from center, later use negative weightage for the points where the source dipole points towards the centroid.
-	
-	eyemodel["orientation"] = zeros(size(eyemodel["pos"]))
-	
-	eyemodel["orientation"][eyemodel_right_idx,:] = calc_orientations(eye_center_R, em_positions_R; direction="away") 
-	
-	eyemodel["orientation"][eyemodel_left_idx,:] = calc_orientations(eye_center_L, em_positions_L; direction="away")
-	"calculate eye source orientations away from respective centre"
-end
-
-# ╔═╡ dc315567-4d47-44dc-aea6-4eb500da2d3d
-begin
-	# finding cornea centers and approximate gaze direction (as mean of cornea orientations)
-	cornea_center_R = Statistics.mean(eyemodel["pos"][lsi_eyemodel["EyeCornea_right"],:],dims=1)
-	cornea_center_L = Statistics.mean(eyemodel["pos"][lsi_eyemodel["EyeCornea_left"],:],dims=1)
-	# gazedir_R = mean(eyemodel["orientation"][lsi_eyemodel["EyeCornea_right"],:], dims=1).*10
-	# gazedir_L = mean(eyemodel["orientation"][lsi_eyemodel["EyeCornea_left"],:], dims=1).*10
-
-	"finding cornea centers and mean gaze direction"
 end
 
 # ╔═╡ c23077be-a053-4e8c-957c-0ea11d037b22
@@ -174,59 +94,11 @@ begin
 	@info "@NOTE defining gaze vectors for pure horizontal and vertical eye movements"
 end
 
-# ╔═╡ b26f09f3-042e-4923-94cc-fb4e4f46cb4a
-begin
-	# gazevectors = # gazevectors_vert # gazevectors_horiz # 
-	sacc_direction = "vert" # "horiz" # 
-	" @NOTE setting trajectory (selecting the pure-saccade direction -> gazevectors) - please also change 'direction' so that the plot labels change accordingly."
-end
-
-# ╔═╡ 2196ed7a-98df-4e33-9b33-318e6c2334f5
-
-
-# ╔═╡ 5db66bd1-46e5-4b14-9159-b158bf3faae2
-
-	# @info vcat(gazevectors[1,:], gazevectors[1,:]), [gazevec_from_angle(0)[:],gazevec_from_angle(0)[:]]
-
-# ╔═╡ 05e14fab-8c76-4aba-ab26-d5d5c21ad88b
-begin
-	function leadfield_specific_sources_orientations(model,idx,equiv_orientations)
-	# take just a selected subset of points in the model, along with a new orientation for those points, and calculate the sum of leadfields of just these points with the given orientation. 
-		equiv_ori_model = model["orientation"]
-		
-		for ii in idx
-			equiv_ori_model[ii,:] = equiv_orientations[:]
-		end
-		
-		mag_eyemodel_equiv = magnitude(eyemodel["leadfield"],equiv_ori_model)
-		mag = sum(mag_eyemodel_equiv[:,ii] for ii in idx)
-		return mag
-	end
-end
-
 # ╔═╡ 27565b1b-50da-49b2-8dba-9cf7d68845f2
 begin
 	@info "@NOTE: defining electrodes of interest"
 	electrode_indices = [7,8, 147, 150, 159, 48, 164]
 	# set_theme!(figure_padding = (10,100,10,10))
-end
-
-# ╔═╡ 6e1951fe-79fa-4c0f-8cbd-8833cace416a
-begin
-	@info "@NOTE: plotting diff ensemble"
-	# fig_results_traj_ensemble_diff = plot_potentials_lf(
-	# 	lf_ensemble_diff, gaze_angles_pure, "Difference Ensemble"
-	# )
-	# save("results_traj_ensemble_diff_vert.svg",fig_results_traj_ensemble_diff)
-end
-
-# ╔═╡ 52fe3ffc-5913-42c2-b264-13913836d6f0
-begin
-	@info "@NOTE: plotting diff CRD"
-	# fig_results_traj_crd_diff = plot_potentials_lf(
-	# 	lf_crd_diff, gaze_angles_pure, "Difference CRD"
-	# )
-	# save("results_traj_crd_diff_vert.svg",fig_results_traj_crd_diff)
 end
 
 # ╔═╡ d9add875-4e6a-4e56-bd51-1711cefac056
@@ -236,26 +108,6 @@ end
 # ╔═╡ 35263c3c-771f-49d5-b49f-847928ad4270
 # topoplot_series crd
 # plot_toposeries_lf(leadfields_crd)
-
-# ╔═╡ 457c3997-c641-48d9-9dc0-2034ac668fad
-begin
-	# difference wrt CPz (index 48)
-	# d1 = zeros(size(leadfields))
-	# for ix in 1:227
-	# 	d1[ix,:] = leadfields[ix,:] - leadfields[48,:]
-	# end
-	
-	# difference between samples (consecutive angles)
-	# d2 = diff(leadfields,dims=2)
-	# fig_lineplots5, ax5, sp5 = series(gaze_angles_horiz[30:60],d2[electrode_indices,30:60];labels=hart_small.electrodes["label"][electrode_indices], color=:Set1)
-	# # series!(,d1[48,:];labels=["CPz"], color=:Set1)
-	# ax5.title = "Potential difference from prev.sample i.e. angle"
-	# axislegend(ax5; position=(1.29,0.5))
-	# fig_lineplots5
-	# leadfields
-	# d2
-	@info "plotting potential difference from one sample (angle) to the next: just haphazardly went up and down, does not seem to be a good direction to go" 
-end
 
 # ╔═╡ 6c32c1a6-ed3e-4012-aa5f-159d50e438f6
 EEG = matread("../_research/exported_epochs_2025-07-07.set")
@@ -285,7 +137,7 @@ end
 describe(EEG)
 
 # ╔═╡ ac55fbff-08c5-446f-94d5-110b82f8ac96
-plot(xpos[:,3], ypos[:,3])
+plot(xpos[:,2], ypos[:,2])
 
 # ╔═╡ c64d7479-b554-40d1-b7cb-a78986a4130c
 begin
@@ -293,51 +145,41 @@ begin
 	
 end
 
-# ╔═╡ 24767682-e72a-4fa1-86bd-ae225fd1bca2
-begin
-	# @NOTE: Calculating leadfields via crd placed at centre of eye.
-	@info "crd at center of eye"
-	leadfields_crd = zeros(227,length(gazevectors))
-	eyecenter_idx = [lsi_eyemodel["EyeCenter_left"][1],lsi_eyemodel["EyeCenter_right"][1]]
-	
-	
-	for ix in 1:length(gazevectors)
-		# leadfields_crd[:,ix] = (
-		# 	equiv_dipole_mag(deepcopy(eyemodel),eyecenter_idx[1],gazevectors[ix]) + equiv_dipole_mag(deepcopy(eyemodel),eyecenter_idx[2],gazevectors[ix])
-		# ).*10e3
-
-		# @info [gazevectors[ix]; gazevectors[ix]]
-		# calculate leadfield due to 2 individual CRD sources and add
-		leadfields_crd[:,ix] = (
-			leadfield_specific_sources_orientations(deepcopy(eyemodel),eyecenter_idx,gazevectors[ix])
-		).*10e3
-	end
-
-	# # calculate difference from centre gaze
-	# lf_crd_centregaze = leadfield_specific_sources_orientations(deepcopy(eyemodel),eyecenter_idx,gazevec_from_angle(0)).*10e3
-	# lf_crd_diff = zeros(size(leadfields_crd))
-	#  for ix in 1:length(gazevectors) 
-	#  	lf_crd_diff[:,ix] = leadfields_crd[:,ix] - lf_crd_centregaze
-	#  end
-
-	
-	"@NOTE calculate lf for CRDs placed at eye centres"
-end
-
 # ╔═╡ 80078025-fd4b-4be5-b1fc-226cb912948d
-leadfields = leadfields_crd
+# leadfields = leadfields_crd
 
-# ╔═╡ 5ce80c0a-5e03-43bb-9254-4ad981ae8213
-plot_toposeries_lf(leadfields[:,1:50])
+# ╔═╡ aee47309-9b58-41d3-a334-bc1f820fcc40
+
+
+# ╔═╡ 76e5a4e4-f439-4d90-8caa-e1894905f0e3
+
 
 # ╔═╡ bf3601b8-7eb6-40a9-8fee-0284150ecf1c
-gazevectors_mne[1:100,1]
+# gazevectors_mne[1:100,1]
 
 # ╔═╡ 4370c49e-d64e-4dc4-85ac-843571591bc4
-plot_erp(leadfields[:,:])
+# plot_erp(leadfields[:,:])
 
 # ╔═╡ 5d857ba8-12ee-45a7-8606-672d3003ad53
-xpos, ypos
+# xpos, ypos
+
+# ╔═╡ 32d1b694-fd5a-4826-a5f0-e4e061762e67
+
+
+# ╔═╡ d0e418b0-b276-4ead-816f-fc4427fea05a
+
+
+# ╔═╡ 61bfbfa8-00a5-4ada-859f-b1299e0c0623
+
+
+# ╔═╡ 7e45fd82-c843-4c67-ab18-627de895b55d
+
+
+# ╔═╡ fac365c8-30e9-429a-be0a-79dd4cd76af9
+
+
+# ╔═╡ 83826c34-a41d-434d-aa81-302b2d2a8d80
+testfunction()
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -3004,34 +2846,21 @@ version = "3.6.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╠═3a271e46-e43f-46e0-84bf-32192c9b8fe5
-# ╠═5e6b5bca-bd66-4325-8744-1afe2e83a04f
-# ╠═b1e20630-9f48-4ed0-9390-7da4f084830f
-# ╠═f99cff61-c795-4f86-af35-c4f6cb5ab21a
+# ╟─3a271e46-e43f-46e0-84bf-32192c9b8fe5
+# ╟─5e6b5bca-bd66-4325-8744-1afe2e83a04f
+# ╟─b1e20630-9f48-4ed0-9390-7da4f084830f
+# ╟─f99cff61-c795-4f86-af35-c4f6cb5ab21a
 # ╠═c9125a84-e898-11ef-1440-138458aa6009
 # ╠═c24e4fb9-adc3-474b-bafc-12130490260c
-# ╠═b34dd987-fc86-4c0c-b0fd-ee7f10983734
-# ╠═fa7aaded-fcd1-4049-a611-462115614910
-# ╠═05a80c04-af93-47f3-99db-83c0b5a6b920
-# ╠═3756412a-0715-4ae4-9e32-f46978e60a38
-# ╠═fe8025c9-3f52-401f-bbdb-60d0dffafd2a
+# ╠═98b56171-6eda-4d9b-89bf-5c3098fa37f1
+# ╠═2cf0e611-56b4-4b96-a43c-519d683251d5
+# ╠═70ad93a5-3f94-4fdc-b3c3-5ca7a503485c
 # ╠═13c37f0e-aedb-46be-9e50-9955536041de
 # ╠═28f897bc-1c6d-4c10-888b-c83060c3389b
-# ╠═6eb97701-d8e2-4ef9-b518-1e346246cc53
-# ╠═a3deace1-21a2-4c5a-a68a-84e31360d986
-# ╠═dc315567-4d47-44dc-aea6-4eb500da2d3d
 # ╠═c23077be-a053-4e8c-957c-0ea11d037b22
-# ╠═b26f09f3-042e-4923-94cc-fb4e4f46cb4a
-# ╠═2196ed7a-98df-4e33-9b33-318e6c2334f5
-# ╠═5db66bd1-46e5-4b14-9159-b158bf3faae2
-# ╠═24767682-e72a-4fa1-86bd-ae225fd1bca2
-# ╠═05e14fab-8c76-4aba-ab26-d5d5c21ad88b
 # ╠═27565b1b-50da-49b2-8dba-9cf7d68845f2
-# ╠═6e1951fe-79fa-4c0f-8cbd-8833cace416a
-# ╠═52fe3ffc-5913-42c2-b264-13913836d6f0
 # ╠═d9add875-4e6a-4e56-bd51-1711cefac056
 # ╠═35263c3c-771f-49d5-b49f-847928ad4270
-# ╟─457c3997-c641-48d9-9dc0-2034ac668fad
 # ╠═6c32c1a6-ed3e-4012-aa5f-159d50e438f6
 # ╠═b0f728ba-f4e5-48a0-8e34-bf05166227cf
 # ╠═ca9f5b20-f55c-4339-b5c6-62de6a7a9766
@@ -3041,9 +2870,16 @@ version = "3.6.0+0"
 # ╠═ac55fbff-08c5-446f-94d5-110b82f8ac96
 # ╠═c64d7479-b554-40d1-b7cb-a78986a4130c
 # ╠═80078025-fd4b-4be5-b1fc-226cb912948d
-# ╠═5ce80c0a-5e03-43bb-9254-4ad981ae8213
+# ╠═aee47309-9b58-41d3-a334-bc1f820fcc40
+# ╠═76e5a4e4-f439-4d90-8caa-e1894905f0e3
 # ╠═bf3601b8-7eb6-40a9-8fee-0284150ecf1c
 # ╠═4370c49e-d64e-4dc4-85ac-843571591bc4
 # ╠═5d857ba8-12ee-45a7-8606-672d3003ad53
+# ╠═32d1b694-fd5a-4826-a5f0-e4e061762e67
+# ╠═d0e418b0-b276-4ead-816f-fc4427fea05a
+# ╠═61bfbfa8-00a5-4ada-859f-b1299e0c0623
+# ╠═7e45fd82-c843-4c67-ab18-627de895b55d
+# ╠═fac365c8-30e9-429a-be0a-79dd4cd76af9
+# ╠═83826c34-a41d-434d-aa81-302b2d2a8d80
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
