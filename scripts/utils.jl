@@ -1,5 +1,6 @@
 # using HDF5
 # using DataFrames
+# using CartesianFromSpherical
 
 function read_new_hartmut(;p = "HArtMuT_NYhead_large_fibers.mat")
     file = matopen(p);
@@ -231,3 +232,68 @@ function equiv_dipole_mag(model,idx,equiv_orientations)
 	mag_eyemodel_equiv = magnitude(eyemodel["leadfield"],equiv_ori_model)
 	mag = sum(mag_eyemodel_equiv[:,ii] for ii in idx)
 end
+
+# TODO # create gaze direction vectors from 3d angles (azimuth, elevation) and hcat to create a matrix (gazevec_from_angle_3d.() outputs a vector of vectors)
+# gazevectors_horiz = hcat(gazevec_from_angle_3d.(gd_horiz[:,1],gd_horiz[:,2]))
+
+
+function sim_gazevecs_ensemble() # TODO rename this and turn it into a proper function. For now, moved here from pluto notebook
+# simulate for gazevectors - ensemble method
+
+	# leadfield for centre, to subtract for B-A method
+	lf_center = leadfield_from_gazedir(eyemodel, sim_srcs_idx, gazevec_from_angle(0), 54.0384).*10e3
+
+	# leadfields: matrix of dimensions [electrodes x n_gazepoints] 
+	leadfields_ensemble = zeros(227,length(gazevectors))
+	for ix in 1:length(gazevectors) 
+		# for each gazepoint, calculate the leadfield and store it in the corresponding column
+		leadfields_ensemble[:,ix] = leadfield_from_gazedir(eyemodel, sim_srcs_idx,
+			gazevectors[ix], 54.0384).*10e3
+	end
+
+	# calculate difference from centre gaze
+	lf_ensemble_diff = zeros(size(leadfields_ensemble))
+	for ix in 1:length(gazevectors)
+		lf_ensemble_diff[:,ix] = leadfields_ensemble[:,ix] - lf_center
+	end
+	
+	"@NOTE calculating ensemble leadfields"
+end
+
+function plot_toposeries_lf(lf)
+    dat, positions = lf, electrode_pos
+    df = UnfoldMakie.eeg_array_to_dataframe(dat[:, :], string.(1:length(positions)))
+    bin_width = 5
+    f = plot_topoplotseries(
+    df;
+    bin_num=15,
+    nrows=5,
+    positions = positions,
+    axis = (; xlabel = "Time windows [s]")
+    )
+end
+
+function plot_potentials_lf(lf, xvals, title)
+    fig_sp, ax_sp = series(xvals,lf[electrode_indices,:];labels=hart_small.electrodes["label"][electrode_indices], color=:Set1)
+    ax_sp.title = title # "Standing potential for each angle. \nAngles " * string(minimum(xvals), " to ", maximum(xvals)) * sacc_direction
+    axislegend(ax_sp;
+    position=(1.29,0.5)
+    )
+    fig_sp
+end
+
+# plot into a figure passed in from outside, to get combination plots 
+function plot_potentials_lf_fig(lf, xvals, title, fig_sp)
+    fig_sp, ax_sp = series(xvals,lf[electrode_indices,:];labels=hart_small.electrodes["label"][electrode_indices], color=:Set1)
+    ax_sp.title = title
+    axislegend(ax_sp;
+    position=(1.29,0.5)
+    )
+    fig_sp
+end
+
+
+# set_theme!()
+# set_theme!(figure_padding = (10,100,10,10)) # for selected electrode plots, the legend overlaps the figure - add padding to accommodate this
+
+

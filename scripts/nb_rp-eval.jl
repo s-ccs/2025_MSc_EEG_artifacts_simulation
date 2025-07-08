@@ -14,6 +14,7 @@ begin
 	using LinearAlgebra
 	using Statistics
 	# using AngleBetweenVectors
+	using CoordinateTransformations
 
 	# for helper function to read in the large model
 	using HDF5
@@ -32,16 +33,7 @@ end
 # ╔═╡ b1e20630-9f48-4ed0-9390-7da4f084830f
 begin
 	using DelimitedFiles
-end
-
-# ╔═╡ 39e670c1-3b51-4cd3-b801-e31cfb9e1553
-begin
 	using FileIO
-end
-
-# ╔═╡ 9b2734ad-d052-4d16-99c4-ef687257bcfe
-begin
-	using CoordinateTransformations
 end
 
 # ╔═╡ f99cff61-c795-4f86-af35-c4f6cb5ab21a
@@ -69,10 +61,10 @@ begin
 	# Search source labels for specific keywords and find the indices of those sources
 	
 	# (NOTE the property name is 'labels' in the original hartmut file, but 'label' in the UnfoldSim hartmut headmodel.)
-	labels = [	"Cornea"
-				,"Retina"
+	labels = [	#"Cornea"
+				#,"Retina"
 				# ,"leftright" # all combined sources. does not split between retina & cornea.
-				,r"EyeRetina_Choroid_Sclera_left$" # match the end of the search term, or else it also matches "leftright" sources.
+				r"EyeRetina_Choroid_Sclera_left$" # match the end of the search term, or else it also matches "leftright" sources.
 				,r"EyeRetina_Choroid_Sclera_right$"
 				,"EyeCornea_left" # new spherical eyemodel - only one set of sources per eye and the labels are different
 				,"EyeCornea_right" # same as above
@@ -130,22 +122,15 @@ begin
 		lsi_eyemodel["EyeCornea_right"] ; lsi_eyemodel[r"EyeRetina_Choroid_Sclera_right$"] 
 	]
 	sim_srcs_idx = [eyemodel_left_idx; eyemodel_right_idx] # indices in eyemodel, of the points which we want to use to simulate data, i.e. retina & cornea
-	
-	# positions of left and right Retina&Cornea points in eyemodel, and their centroid (centroid is not used now in favour of eye center points provided in spherical model)
+
+	# For calculating orientations: get positions of left and right Retina&Cornea points in eyemodel, and their centroid (centroid is not used now in favour of eye center points provided in spherical model)
 	em_positions_L = eyemodel["pos"][eyemodel_left_idx,:]
 	em_positions_R = eyemodel["pos"][eyemodel_right_idx,:]
-	# eye_center_L = Statistics.mean(em_positions_L,dims=1)
-	# eye_center_R = Statistics.mean(em_positions_R,dims=1)
-	# mean_center_idx = [UnfoldSim.closest_src(Statistics.mean(em_positions_L,dims=1)[1,:], eyemodel["pos"]);  UnfoldSim.closest_src(Statistics.mean(em_positions_R,dims=1)[1,:], eyemodel["pos"])]
 	
 	eye_center_L = eyemodel["pos"][lsi_eyemodel["EyeCenter_left"],:]
 	eye_center_R = eyemodel["pos"][lsi_eyemodel["EyeCenter_right"],:]
 
-	# Previously calculated values for centroid using all eye points (incl. aqueous/vitreous etc)
-	# eyeall_center_L = [ -30.972  56.9449  -37.1539];
-	# eyeall_center_R = [31.986  56.5737  -37.1178];
-
-	"calculate left/right eye indices, eye centre/centroids, gaze directions" 
+	"calculate left/right eye indices, eye centre, gaze directions" 
 end
 
 # ╔═╡ a3deace1-21a2-4c5a-a68a-84e31360d986
@@ -175,10 +160,6 @@ end
 # ╔═╡ c23077be-a053-4e8c-957c-0ea11d037b22
 begin
 	# Find leadfields for individual angles (pure trajectory).
-	# function gv_angle_3d(angle_H, angle_V)
-	# 	# angles measured from center gaze position - use complementary angle for θ 
-	# 	return Array{Float32}(CartesianFromSpherical()(Spherical(1, deg2rad(90-angle_H), deg2rad(angle_V))))
-	# end
 
 	# gaze_angles_pure = collect(-40:40) # set of angle values for pure saccades
 
@@ -223,41 +204,11 @@ begin
 	end
 end
 
-# ╔═╡ 2470dcc5-3c43-4308-95e8-cc3ec8e81cb8
-# center gaze to -15 degrees, CRD
-# topoplot_leadfields_difference(
-# 		lf_crd_centregaze, leadfields_crd[:,41-15],
-# 		pos2dfrom3d(pos3d); labels = ["CRD - position A", "CRD - position B", "CRD Difference plot, 15°","Difference plot with electrode positions"], commoncolorrange=false)
-
-# ╔═╡ 3da5c213-d75a-4c16-9ed8-853503852f97
-# center gaze to -15 degrees, ensemble
-# topoplot_leadfields_difference(
-# 		lf_center, leadfields[:,41-15],
-# 		pos2dfrom3d(pos3d); labels = ["Ensemble - Position A", "Ensemble - Position B", "Ensemble Difference plot, 15°","Difference plotted with electrodes"], commoncolorrange=false)
-
 # ╔═╡ 27565b1b-50da-49b2-8dba-9cf7d68845f2
 begin
 	@info "@NOTE: defining electrodes of interest"
 	electrode_indices = [7,8, 147, 150, 159, 48, 164]
 	# set_theme!(figure_padding = (10,100,10,10))
-end
-
-# ╔═╡ 7ad659bf-e772-4310-96d9-a2f380d244cc
-begin
-	@info "@NOTE: plotting s.p. ensemble"
-	# fig_results_traj_ensemble = plot_potentials_lf(
-	# 	leadfields, gaze_angles_pure, "Simple Potential: Ensemble"
-	# )
-	# save("results_traj_ensemble_vert.svg",fig_results_traj_ensemble)
-end
-
-# ╔═╡ b518df86-2360-4879-b4c3-659965096e46
-begin
-	@info "@NOTE: plotting for CRD at eyecenters"
-	# fig_results_traj_crd = plot_potentials_lf(
-	# 	leadfields_crd, gaze_angles_pure, "Simple Potential: CRD"
-	# )
-	# save("results_traj_crd_vert.svg",fig_results_traj_crd)
 end
 
 # ╔═╡ 6e1951fe-79fa-4c0f-8cbd-8833cace416a
@@ -286,47 +237,6 @@ end
 # topoplot_series crd
 # plot_toposeries_lf(leadfields_crd)
 
-# ╔═╡ 0623c29f-2612-4ee9-8420-2786d9f9dbbb
-begin
-	function plot_toposeries_lf(lf)
-		dat, positions = lf, electrode_pos
-		df = UnfoldMakie.eeg_array_to_dataframe(dat[:, :], string.(1:length(positions)))
-		bin_width = 5
-		f = plot_topoplotseries(
-	    df;
-	    bin_num=15,
-		nrows=5,
-	    positions = positions,
-	    axis = (; xlabel = "Time windows [s]")
-		)
-	end
-end
-
-# ╔═╡ 0d88dd13-9c5f-4561-a651-e2143fa1c7c9
-begin
-	function plot_potentials_lf(lf, xvals, title)
-		fig_sp, ax_sp = series(xvals,lf[electrode_indices,:];labels=hart_small.electrodes["label"][electrode_indices], color=:Set1)
-		ax_sp.title = title # "Standing potential for each angle. \nAngles " * string(minimum(xvals), " to ", maximum(xvals)) * sacc_direction
-		axislegend(ax_sp;
-		position=(1.29,0.5)
-		)
-		fig_sp
-	end
-end
-
-# ╔═╡ 08a6e1e4-46b0-4871-858d-1f8051e3328f
-begin
-	# plot into a figure passed in from outside, to get combination plots 
-	function plot_potentials_lf_fig(lf, xvals, title, fig_sp)
-		fig_sp, ax_sp = series(xvals,lf[electrode_indices,:];labels=hart_small.electrodes["label"][electrode_indices], color=:Set1)
-		ax_sp.title = title
-		axislegend(ax_sp;
-		position=(1.29,0.5)
-		)
-		fig_sp
-	end
-end
-
 # ╔═╡ 457c3997-c641-48d9-9dc0-2034ac668fad
 begin
 	# difference wrt CPz (index 48)
@@ -347,62 +257,40 @@ begin
 	@info "plotting potential difference from one sample (angle) to the next: just haphazardly went up and down, does not seem to be a good direction to go" 
 end
 
-# ╔═╡ 4251c8ee-16ac-40c5-821e-acb90e9d7b75
+# ╔═╡ 6c32c1a6-ed3e-4012-aa5f-159d50e438f6
+EEG = matread("../_research/exported_epochs_2025-07-07.set")
+
+# ╔═╡ ca9f5b20-f55c-4339-b5c6-62de6a7a9766
 begin
-	# set_theme!()
-	set_theme!(figure_padding = (10,100,10,10)) # for selected electrode plots, the legend overlaps the figure - add padding to accommodate this
+	using DataStructures
+
+	c = counter(EEG["event"]["type"])
 end
 
-# ╔═╡ 01eec740-d9fd-400c-8384-d18cc2a47228
-# ╠═╡ disabled = true
-#=╠═╡
-begin
-	@bind idx_plot NumberField(1:length(gaze_angles_pure))
-end
-  ╠═╡ =#
+# ╔═╡ b0f728ba-f4e5-48a0-8e34-bf05166227cf
+EEG["event"]
 
-# ╔═╡ 9934befe-d0c3-498f-85ca-3f41cd558392
+# ╔═╡ bfed30e4-5fcd-4b19-b704-aa1bf38e4d51
 begin
-	filename = "/home/marathe/Documents/ThesisFiles/data/User2_RapidMovement_1.csv"
-	data, header = readdlm(filename, ',', header=true);
+	# EEG["chanlocs"]["labels"]
+	xpos = EEG["data"][1,:,:]#./260
+	ypos = EEG["data"][2,:,:]#./260
+	gazevectors_mne = hcat(gazevec_from_angle_3d.(xpos,ypos))
 end
 
-# ╔═╡ b014659f-4dd7-49ff-8715-cc78e9f7e4b4
+# ╔═╡ 9ba1bae3-941d-4f43-ad3a-88804d5fc216
+@info xpos, ypos
+
+# ╔═╡ c8d1f713-f5e5-4d7f-aedf-2164d9957587
+describe(EEG)
+
+# ╔═╡ ac55fbff-08c5-446f-94d5-110b82f8ac96
+plot(xpos[:,3], ypos[:,3])
+
+# ╔═╡ c64d7479-b554-40d1-b7cb-a78986a4130c
 begin
-	dat = DataFrame(data, vec(header))
+	gazevectors = gazevectors_mne #gazevectors_vr[1:1500] #gazevectors_mne[1:500,1] 
 	
-	gazevectors1 = hcat.(dat."gaze_direct_L.x",dat."gaze_direct_L.y",dat."gaze_direct_L.z")
-end
-
-# ╔═╡ a2645365-7ab7-495d-8ec4-1804c44ad27e
-begin
-	data_gazedirs_VR = data[:,4:6]
-	describe(data_gazedirs_VR)
-	gazevectors = gazevectors1[1:100] # eachslice(data_gazedirs_VR, dims=1)
-end
-
-# ╔═╡ 4670be07-e9b5-4933-b316-9ece432d8f9d
-begin
-	# simulate for gazevectors - ensemble method
-
-	# leadfield for centre, to subtract for B-A method
-	lf_center = leadfield_from_gazedir(eyemodel, sim_srcs_idx, gazevec_from_angle(0), 54.0384).*10e3
-
-	# leadfields: matrix of dimensions (electrodes x n_gazepoints) 
-	leadfields = zeros(227,length(gazevectors))
-	for ix in 1:length(gazevectors) 
-		# for each gazepoint, calculate the leadfield and store it in the corresponding column
-		leadfields[:,ix] = leadfield_from_gazedir(eyemodel, sim_srcs_idx,
-			gazevectors[ix], 54.0384).*10e3
-	end
-
-	# calculate difference from centre gaze
-	lf_ensemble_diff = zeros(size(leadfields))
-	for ix in 1:length(gazevectors)
-		lf_ensemble_diff[:,ix] = leadfields[:,ix] - lf_center
-	end
-	
-	"@NOTE calculating ensemble leadfields"
 end
 
 # ╔═╡ 24767682-e72a-4fa1-86bd-ae225fd1bca2
@@ -425,52 +313,39 @@ begin
 		).*10e3
 	end
 
-	# calculate difference from centre gaze
-	lf_crd_centregaze = leadfield_specific_sources_orientations(deepcopy(eyemodel),eyecenter_idx,gazevec_from_angle(0)).*10e3
-	lf_crd_diff = zeros(size(leadfields_crd))
-	 for ix in 1:length(gazevectors) 
-	 	lf_crd_diff[:,ix] = leadfields_crd[:,ix] - lf_crd_centregaze
-	 end
+	# # calculate difference from centre gaze
+	# lf_crd_centregaze = leadfield_specific_sources_orientations(deepcopy(eyemodel),eyecenter_idx,gazevec_from_angle(0)).*10e3
+	# lf_crd_diff = zeros(size(leadfields_crd))
+	#  for ix in 1:length(gazevectors) 
+	#  	lf_crd_diff[:,ix] = leadfields_crd[:,ix] - lf_crd_centregaze
+	#  end
 
 	
 	"@NOTE calculate lf for CRDs placed at eye centres"
 end
 
-# ╔═╡ 4b327df0-64c5-42d8-b4a0-569e187e54ce
-# SP CRD plot seems to be missing FFT10h - it is very similar to FFT9h (index 147,150 respectively)
-	@info mean(leadfields_crd[147,:] - leadfields_crd[150,:])
+# ╔═╡ 80078025-fd4b-4be5-b1fc-226cb912948d
+leadfields = leadfields_crd
 
-# ╔═╡ b629574d-881f-4098-9f30-7168e843a8b9
-# gazevectors_vert, 
-[dat.:var"gaze_direct_L.x" dat.:var"gaze_direct_L.y" dat.:var"gaze_direct_L.z"]
+# ╔═╡ 5ce80c0a-5e03-43bb-9254-4ad981ae8213
+plot_toposeries_lf(leadfields[:,1:50])
 
-# ╔═╡ 6c32c1a6-ed3e-4012-aa5f-159d50e438f6
-EEG = matread("../mne-sampledata-saccades-epochs.set")
+# ╔═╡ bf3601b8-7eb6-40a9-8fee-0284150ecf1c
+gazevectors_mne[1:100,1]
 
-# ╔═╡ bfed30e4-5fcd-4b19-b704-aa1bf38e4d51
-begin
-	# EEG["chanlocs"]["labels"]
-	xpos = EEG["data"][1,:,:]./260
-	ypos = EEG["data"][2,:,:]./260
-	
-end
+# ╔═╡ 4370c49e-d64e-4dc4-85ac-843571591bc4
+plot_erp(leadfields[:,:])
 
-# ╔═╡ ac55fbff-08c5-446f-94d5-110b82f8ac96
-plot(xpos[:,1], ypos[:,1])
-
-# ╔═╡ e6bff2dd-5c56-4cd9-b203-58eebf2b119d
-plot(EEG["data"][2,:,1])
-
-# ╔═╡ ccd4a074-6103-4c4d-988b-ce409ff40275
-# Each trial was 90-seconds long
+# ╔═╡ 5d857ba8-12ee-45a7-8606-672d3003ad53
+xpos, ypos
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-AngleBetweenVectors = "ec570357-d46e-52ed-9726-18773498274d"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
@@ -486,10 +361,10 @@ UnfoldSim = "ed8ae6d2-84d3-44c6-ab46-0baf21700804"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
 [compat]
-AngleBetweenVectors = "~0.3.0"
 CairoMakie = "~0.13.1"
 CoordinateTransformations = "~0.6.4"
 DataFrames = "~1.7.0"
+DataStructures = "~0.18.22"
 FileIO = "~1.17.0"
 HDF5 = "~0.17.2"
 MAT = "~0.10.7"
@@ -508,7 +383,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "5b4bcb1e1e7fbcbcfa1a39ae8dd99477459db5bc"
+project_hash = "e0437b517b4497f47f298e8bd18e5c66d1ef067d"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "e2478490447631aedba0823d4d7a80b2cc8cdb32"
@@ -598,12 +473,6 @@ deps = ["PtrArrays", "Random"]
 git-tree-sha1 = "9876e1e164b144ca45e9e3198d0b689cadfed9ff"
 uuid = "66dad0bd-aa9a-41b7-9441-69ab47430ed8"
 version = "1.1.3"
-
-[[deps.AngleBetweenVectors]]
-deps = ["LinearAlgebra", "Test"]
-git-tree-sha1 = "7f45b5788f4800959a352b5e2c5fdebacf09627c"
-uuid = "ec570357-d46e-52ed-9726-18773498274d"
-version = "0.3.0"
 
 [[deps.Animations]]
 deps = ["Colors"]
@@ -942,9 +811,9 @@ uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
 version = "2.5.0"
 
 [[deps.ConstructionBase]]
-git-tree-sha1 = "76219f1ed5771adbb096743bff43fb5fdd4c1157"
+git-tree-sha1 = "b4b092499347b18a015186eae3042f72267106cb"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
-version = "1.5.8"
+version = "1.6.0"
 weakdeps = ["IntervalSets", "LinearAlgebra", "StaticArrays"]
 
     [deps.ConstructionBase.extensions]
@@ -975,9 +844,9 @@ version = "1.0.2"
 
 [[deps.DSP]]
 deps = ["Bessels", "FFTW", "IterTools", "LinearAlgebra", "Polynomials", "Random", "Reexport", "SpecialFunctions", "Statistics"]
-git-tree-sha1 = "0c8a70a69036d8f3a2426d768d30144547cd73c0"
+git-tree-sha1 = "5989debfc3b38f736e69724818210c67ffee4352"
 uuid = "717857b8-e6f2-59f4-9121-6e50c889abd2"
-version = "0.8.3"
+version = "0.8.4"
 weakdeps = ["OffsetArrays"]
 
     [deps.DSP.extensions]
@@ -1065,9 +934,9 @@ version = "1.15.1"
 
 [[deps.DifferentiationInterface]]
 deps = ["ADTypes", "LinearAlgebra"]
-git-tree-sha1 = "c8d85ecfcbaef899308706bebdd8b00107f3fb43"
+git-tree-sha1 = "210933c93f39f832d92f9efbbe69a49c453db36d"
 uuid = "a0c0ee7d-e4b9-4e03-894e-1c5f64a51d63"
-version = "0.6.54"
+version = "0.7.1"
 
     [deps.DifferentiationInterface.extensions]
     DifferentiationInterfaceChainRulesCoreExt = "ChainRulesCore"
@@ -1146,9 +1015,9 @@ version = "0.25.120"
     Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.DocStringExtensions]]
-git-tree-sha1 = "e7b7e6f178525d17c720ab9c081e4ef04429f860"
+git-tree-sha1 = "7442a5dfe1ebb773c29cc2962a8980f47221d76c"
 uuid = "ffbed154-4ef7-542d-bbb7-c09d3a79fcae"
-version = "0.9.4"
+version = "0.9.5"
 
 [[deps.Downloads]]
 deps = ["ArgTools", "FileWatching", "LibCURL", "NetworkOptions"]
@@ -1442,9 +1311,9 @@ version = "1.14.6+0"
 
 [[deps.HTTP]]
 deps = ["Base64", "CodecZlib", "ConcurrentUtilities", "Dates", "ExceptionUnwrapping", "Logging", "LoggingExtras", "MbedTLS", "NetworkOptions", "OpenSSL", "PrecompileTools", "Random", "SimpleBufferStream", "Sockets", "URIs", "UUIDs"]
-git-tree-sha1 = "f93655dc73d7a0b4a368e3c0bce296ae035ad76e"
+git-tree-sha1 = "ed5e9c58612c4e081aecdb6e1a479e18462e041e"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
-version = "1.10.16"
+version = "1.10.17"
 
 [[deps.HarfBuzz_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll"]
@@ -1557,9 +1426,9 @@ uuid = "d25df0c9-e2be-5dd7-82c8-3ad0b3e990b9"
 version = "0.1.5"
 
 [[deps.InlineStrings]]
-git-tree-sha1 = "6a9fde685a7ac1eb3495f8e812c5a7c3711c2d5e"
+git-tree-sha1 = "8594fac023c5ce1ef78260f24d1ad18b4327b420"
 uuid = "842dd82b-1e85-43dc-bf29-5d0ee9dffc48"
-version = "1.4.3"
+version = "1.4.4"
 weakdeps = ["ArrowTypes", "Parsers"]
 
     [deps.InlineStrings.extensions]
@@ -1817,9 +1686,9 @@ version = "2.41.0+0"
 
 [[deps.LineSearches]]
 deps = ["LinearAlgebra", "NLSolversBase", "NaNMath", "Parameters", "Printf"]
-git-tree-sha1 = "e4c3be53733db1051cc15ecf573b1042b3a712a1"
+git-tree-sha1 = "4adee99b7262ad2a1a4bbbc59d993d24e55ea96f"
 uuid = "d3d80556-e9d4-5f37-9878-2ab0fcc64255"
-version = "7.3.0"
+version = "7.4.0"
 
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
@@ -2042,9 +1911,9 @@ version = "0.3.0"
 
 [[deps.NLSolversBase]]
 deps = ["ADTypes", "DifferentiationInterface", "Distributed", "FiniteDiff", "ForwardDiff"]
-git-tree-sha1 = "b14c7be6046e7d48e9063a0053f95ee0fc954176"
+git-tree-sha1 = "25a6638571a902ecfb1ae2a18fc1575f86b1d4df"
 uuid = "d41bc354-129a-5804-8e4c-c37616107c6c"
-version = "7.9.1"
+version = "7.10.0"
 
 [[deps.NLopt]]
 deps = ["CEnum", "NLopt_jll"]
@@ -2147,9 +2016,9 @@ version = "0.8.5+0"
 
 [[deps.OpenMPI_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Hwloc_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML", "Zlib_jll"]
-git-tree-sha1 = "047b66eb62f3cae59ed260ebb9075a32a04350f1"
+git-tree-sha1 = "ec764453819f802fc1e144bfe750c454181bd66d"
 uuid = "fe0851c0-eecd-5654-98d4-656369965a5c"
-version = "5.0.7+2"
+version = "5.0.8+0"
 
 [[deps.OpenSSL]]
 deps = ["BitFlags", "Dates", "MozillaCACerts_jll", "OpenSSL_jll", "Sockets"]
@@ -2171,9 +2040,9 @@ version = "0.5.6+0"
 
 [[deps.Optim]]
 deps = ["Compat", "EnumX", "FillArrays", "ForwardDiff", "LineSearches", "LinearAlgebra", "NLSolversBase", "NaNMath", "PositiveFactorizations", "Printf", "SparseArrays", "StatsBase"]
-git-tree-sha1 = "31b3b1b8e83ef9f1d50d74f1dd5f19a37a304a1f"
+git-tree-sha1 = "61942645c38dd2b5b78e2082c9b51ab315315d10"
 uuid = "429524aa-4258-5aef-a3af-852621145aeb"
-version = "1.12.0"
+version = "1.13.2"
 
     [deps.Optim.extensions]
     OptimMOIExt = "MathOptInterface"
@@ -2297,9 +2166,9 @@ version = "0.1.2"
 
 [[deps.Polynomials]]
 deps = ["LinearAlgebra", "OrderedCollections", "RecipesBase", "Requires", "Setfield", "SparseArrays"]
-git-tree-sha1 = "555c272d20fc80a2658587fb9bbda60067b93b7c"
+git-tree-sha1 = "4059725075087c852082b2022e9558de16ce8e84"
 uuid = "f27b6e38-b328-58d1-80ce-0feddd5e7a45"
-version = "4.0.19"
+version = "4.0.20"
 
     [deps.Polynomials.extensions]
     PolynomialsChainRulesCoreExt = "ChainRulesCore"
@@ -2510,9 +2379,9 @@ version = "0.3.6"
 
 [[deps.Scratch]]
 deps = ["Dates"]
-git-tree-sha1 = "3bac05bc7e74a75fd9cba4295cde4045d9fe2386"
+git-tree-sha1 = "9b81b8393e50b7d4e6d0a9f14e192294d3b7c109"
 uuid = "6c6a2e73-6563-6170-7368-637461726353"
-version = "1.2.1"
+version = "1.3.0"
 
 [[deps.SentinelArrays]]
 deps = ["Dates", "Random"]
@@ -2876,9 +2745,9 @@ uuid = "9d95f2ec-7b3d-5a63-8d20-e2491e220bb9"
 version = "1.4.6"
 
 [[deps.URIs]]
-git-tree-sha1 = "cbbebadbcc76c5ca1cc4b4f3b0614b3e603b5000"
+git-tree-sha1 = "24c1c558881564e2217dcf7840a8b2e10caeb0f9"
 uuid = "5c2747f8-b7ea-4ff2-ba2e-563bfd36b1d4"
-version = "1.5.2"
+version = "1.6.0"
 
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
@@ -2940,14 +2809,16 @@ version = "0.4.1"
 
 [[deps.Unitful]]
 deps = ["Dates", "LinearAlgebra", "Random"]
-git-tree-sha1 = "d62610ec45e4efeabf7032d67de2ffdea8344bed"
+git-tree-sha1 = "d2282232f8a4d71f79e85dc4dd45e5b12a6297fb"
 uuid = "1986cc42-f94f-5a68-af5c-568840ba703d"
-version = "1.22.1"
-weakdeps = ["ConstructionBase", "InverseFunctions"]
+version = "1.23.1"
+weakdeps = ["ConstructionBase", "ForwardDiff", "InverseFunctions", "Printf"]
 
     [deps.Unitful.extensions]
     ConstructionBaseUnitfulExt = "ConstructionBase"
+    ForwardDiffExt = "ForwardDiff"
     InverseFunctionsUnitfulExt = "InverseFunctions"
+    PrintfExt = "Printf"
 
 [[deps.WAV]]
 deps = ["Base64", "FileIO", "Libdl", "Logging"]
@@ -3136,8 +3007,6 @@ version = "3.6.0+0"
 # ╠═3a271e46-e43f-46e0-84bf-32192c9b8fe5
 # ╠═5e6b5bca-bd66-4325-8744-1afe2e83a04f
 # ╠═b1e20630-9f48-4ed0-9390-7da4f084830f
-# ╠═39e670c1-3b51-4cd3-b801-e31cfb9e1553
-# ╠═9b2734ad-d052-4d16-99c4-ef687257bcfe
 # ╠═f99cff61-c795-4f86-af35-c4f6cb5ab21a
 # ╠═c9125a84-e898-11ef-1440-138458aa6009
 # ╠═c24e4fb9-adc3-474b-bafc-12130490260c
@@ -3149,39 +3018,32 @@ version = "3.6.0+0"
 # ╠═13c37f0e-aedb-46be-9e50-9955536041de
 # ╠═28f897bc-1c6d-4c10-888b-c83060c3389b
 # ╠═6eb97701-d8e2-4ef9-b518-1e346246cc53
-# ╟─a3deace1-21a2-4c5a-a68a-84e31360d986
+# ╠═a3deace1-21a2-4c5a-a68a-84e31360d986
 # ╠═dc315567-4d47-44dc-aea6-4eb500da2d3d
 # ╠═c23077be-a053-4e8c-957c-0ea11d037b22
 # ╠═b26f09f3-042e-4923-94cc-fb4e4f46cb4a
 # ╠═2196ed7a-98df-4e33-9b33-318e6c2334f5
-# ╟─4670be07-e9b5-4933-b316-9ece432d8f9d
 # ╠═5db66bd1-46e5-4b14-9159-b158bf3faae2
-# ╟─24767682-e72a-4fa1-86bd-ae225fd1bca2
-# ╟─05e14fab-8c76-4aba-ab26-d5d5c21ad88b
-# ╠═2470dcc5-3c43-4308-95e8-cc3ec8e81cb8
-# ╠═3da5c213-d75a-4c16-9ed8-853503852f97
+# ╠═24767682-e72a-4fa1-86bd-ae225fd1bca2
+# ╠═05e14fab-8c76-4aba-ab26-d5d5c21ad88b
 # ╠═27565b1b-50da-49b2-8dba-9cf7d68845f2
-# ╠═7ad659bf-e772-4310-96d9-a2f380d244cc
-# ╠═b518df86-2360-4879-b4c3-659965096e46
-# ╠═4b327df0-64c5-42d8-b4a0-569e187e54ce
 # ╠═6e1951fe-79fa-4c0f-8cbd-8833cace416a
 # ╠═52fe3ffc-5913-42c2-b264-13913836d6f0
 # ╠═d9add875-4e6a-4e56-bd51-1711cefac056
 # ╠═35263c3c-771f-49d5-b49f-847928ad4270
-# ╠═0623c29f-2612-4ee9-8420-2786d9f9dbbb
-# ╠═0d88dd13-9c5f-4561-a651-e2143fa1c7c9
-# ╠═08a6e1e4-46b0-4871-858d-1f8051e3328f
 # ╟─457c3997-c641-48d9-9dc0-2034ac668fad
-# ╠═4251c8ee-16ac-40c5-821e-acb90e9d7b75
-# ╠═01eec740-d9fd-400c-8384-d18cc2a47228
-# ╠═9934befe-d0c3-498f-85ca-3f41cd558392
-# ╠═a2645365-7ab7-495d-8ec4-1804c44ad27e
-# ╠═b014659f-4dd7-49ff-8715-cc78e9f7e4b4
-# ╠═b629574d-881f-4098-9f30-7168e843a8b9
 # ╠═6c32c1a6-ed3e-4012-aa5f-159d50e438f6
+# ╠═b0f728ba-f4e5-48a0-8e34-bf05166227cf
+# ╠═ca9f5b20-f55c-4339-b5c6-62de6a7a9766
 # ╠═bfed30e4-5fcd-4b19-b704-aa1bf38e4d51
+# ╠═9ba1bae3-941d-4f43-ad3a-88804d5fc216
+# ╠═c8d1f713-f5e5-4d7f-aedf-2164d9957587
 # ╠═ac55fbff-08c5-446f-94d5-110b82f8ac96
-# ╠═e6bff2dd-5c56-4cd9-b203-58eebf2b119d
-# ╠═ccd4a074-6103-4c4d-988b-ce409ff40275
+# ╠═c64d7479-b554-40d1-b7cb-a78986a4130c
+# ╠═80078025-fd4b-4be5-b1fc-226cb912948d
+# ╠═5ce80c0a-5e03-43bb-9254-4ad981ae8213
+# ╠═bf3601b8-7eb6-40a9-8fee-0284150ecf1c
+# ╠═4370c49e-d64e-4dc4-85ac-843571591bc4
+# ╠═5d857ba8-12ee-45a7-8606-672d3003ad53
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
