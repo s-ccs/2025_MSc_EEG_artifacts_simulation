@@ -29,3 +29,6 @@ docs/site/
 
 # EEG/ET data
 _research/data
+
+# backups of pluto notebooks
+*backup*.jl
