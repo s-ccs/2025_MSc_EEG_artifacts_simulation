@@ -279,8 +279,8 @@ function plot_toposeries_lf(lf)
     )
 end
 
-function plot_potentials_lf(lf, xvals, title)
-    fig_sp, ax_sp = series(xvals,lf[electrode_indices,:];labels=hart_small.electrodes["label"][electrode_indices], color=:Set1)
+function plot_potentials_lf(lf, electrode_indices, labels, xvals, title)
+    fig_sp, ax_sp = series(xvals,lf[electrode_indices,:];labels=labels, color=:Set1)
     ax_sp.title = title # "Standing potential for each angle. \nAngles " * string(minimum(xvals), " to ", maximum(xvals)) * sacc_direction
     axislegend(ax_sp;
     position=(1.29,0.5)
@@ -332,6 +332,8 @@ function import_model()
 	hart_small = UnfoldSim.headmodel()
 	pos3d = hart_small.electrodes["pos"]
 	electrode_pos = pos2dfrom3d(pos3d)
+    eyemodel["electrodes"] = deepcopy(hart_small.electrodes)
+    eyemodel["electrodes"]["pos2d"] = pos2dfrom3d(pos3d)
 
     return eyemodel, electrode_pos, lsi_eyemodel
 end
@@ -341,12 +343,8 @@ Calculate left/right eye indices, eye centers, orientations and add them to the 
 """
 function setup_eyemodel(eyemodel, lsi_eyemodel)
 
-	eyemodel_left_idx = [ 
-		lsi_eyemodel["EyeCornea_left"] ; lsi_eyemodel[r"EyeRetina_Choroid_Sclera_left$"] 
-	]
-	eyemodel_right_idx = [ 
-		lsi_eyemodel["EyeCornea_right"] ; lsi_eyemodel[r"EyeRetina_Choroid_Sclera_right$"] 
-	]
+	eyemodel_left_idx = [ lsi_eyemodel["EyeCornea_left"] ; lsi_eyemodel[r"EyeRetina_Choroid_Sclera_left$"] ]
+	eyemodel_right_idx = [ lsi_eyemodel["EyeCornea_right"] ; lsi_eyemodel[r"EyeRetina_Choroid_Sclera_right$"] ]
 
 	# For calculating orientations: get positions of left and right eye points in eyemodel, and their center (provided directly in spherical model)
 	em_positions_L = eyemodel["pos"][eyemodel_left_idx,:]
@@ -359,6 +357,8 @@ function setup_eyemodel(eyemodel, lsi_eyemodel)
 	eyemodel["orientation"] = zeros(size(eyemodel["pos"]))
 	eyemodel["orientation"][eyemodel_right_idx,:] = calc_orientations(eye_center_R, em_positions_R; direction="away") 
 	eyemodel["orientation"][eyemodel_left_idx,:] = calc_orientations(eye_center_L, em_positions_L; direction="away")
+
+    # add some more eyemodel-properties to the model
     eyemodel["eyeleft_idx"] = eyemodel_left_idx
     eyemodel["eyeright_idx"] = eyemodel_right_idx
     eyemodel["eyecenter_left_pos"] = eye_center_L
@@ -368,7 +368,7 @@ function setup_eyemodel(eyemodel, lsi_eyemodel)
 
 end
 
-function simulate_crd(gazevectors) # TODO add type & dimensions
+function simulate_crd(eyemodel, gazevectors) # TODO add type & dimensions
     leadfields_crd = zeros(227,length(gazevectors)) # TODO replace hardcoded 227 with number of channels in model?
 	eyecenter_idx = [lsi_eyemodel["EyeCenter_left"][1],lsi_eyemodel["EyeCenter_right"][1]] #TODO remove duplication of calculating center indices
 	
@@ -395,6 +395,7 @@ function leadfield_specific_sources_orientations(model,idx,equiv_orientations)
     return mag
 end
 
+#TODO add dandelion plot as utility function
 
 
 # ------------------------ for later reference
