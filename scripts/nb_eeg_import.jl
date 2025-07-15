@@ -36,45 +36,61 @@ CondaPkg.add("mne") # due to a bug in PyMNE https://github.com/beacon-biosignals
 eeglabdata = PyMNE.io.read_raw_eeglab("../_research/data/2024FreeViewingMSCOCO/sub-030/from-mne/synced_data_export.set")
 
 # ╔═╡ e213b142-a26c-407c-831e-28f17085a05d
-eeglabdata.get_data(picks=pylist([1,2,3,4,5,6,7,8,9,10]))
+# eeglabdata.get_data(picks=pylist([1,2,3,4,5,6,7,8,9,10]))
+eeglabdata.annotations[1]
 
 # ╔═╡ bb31584f-725f-4709-ac83-8a1a2b3d5528
 begin
 	data = pyconvert(Array, eeglabdata.get_data())
 end
 
-# ╔═╡ bc2ec165-aca3-4e80-b0c3-d1b45e338844
-begin
-	# f = UnfoldMakie.Figure()
-	f = UnfoldMakie.plot_erp(data[8:13,1:200]')
-	# show(f.)
-end
-
-# ╔═╡ bd3b4f22-86a2-4fe1-b0c7-d1e67c45555a
-f
-
 # ╔═╡ edd40bf4-ef00-4fcf-98b0-c5552f9e084b
 begin
 	onsets = Int.(round.(pyconvert.(Float64,[annotation["onset"].*1000 for annotation in eeglabdata.annotations if "ET" in annotation["description"]])))
 end
 
-# ╔═╡ 36360d9e-541a-46dc-af21-90cf5b1cd5c5
+# ╔═╡ b1248d60-931e-4947-beed-318e6db42850
 begin
-	data_clipped = data[[39,61,64,71],1:5000]
-	data_clipped = data_clipped[:,:].-Statistics.mean(data_clipped[:,1:1000],dims=2)
+	@info "left eye x,y plotted"
+	# plot_erp(data[1:2,1:5000]')
+	times = (139408-5000):(139408+5000)
+	times = [times...] # 10000:100850
+	# times = 4753000:4754000
+	fig, ax = lines(data[1:2,4746000:4748000], alpha=0.5, color=:red) #, xlims = (0.5, 0.5), ylims = (0.5, 0.5)
+	lines!(data[4:5,4746000:4748000], alpha=0.25, color=:green)
+	ylims!(ax, -0.218, 0.218)
+	xlims!(ax, -0.2792, 0.2792)
+	fig
 end
 
-# ╔═╡ b1248d60-931e-4947-beed-318e6db42850
-plot_erp(data[1:2,1:5000]')
+# ╔═╡ aec31356-4a19-42d1-b0c6-f13ecbc4ae11
+begin
+	# plot_erp(data[1:6,4751000:4754000]')
+# plot_erp(data[[1,2,4,5],1:5000]')
+	f1 = plot_erp(data[[1,2,4,5],4746000:4748000]')
+	xs = [4746.137113, 4746.425613, 4746.584113, 4746.763113, 4747.014613, 4747.189613, 4747.441613, 4747.682614, 4747.867614].*1000
+	xs = xs.-4746000
+	vlines!(xs)
+	f1
+end
 
-# ╔═╡ e8100fd0-55b2-4cb2-b819-447ffde77b39
-plot_erp(data_clipped')
+# ╔═╡ 36360d9e-541a-46dc-af21-90cf5b1cd5c5
+begin
+	data_clipped = data[:,4746000:4748000] # [39,61,64,71]
+	# data_clipped = data_clipped[:,:].-Statistics.mean(data_clipped[:,1:1000],dims=2)
+	f_clipped = plot_erp(data_clipped')
+	vlines!(xs)
+	f_clipped
+end
+
+# ╔═╡ c392f6d7-c744-45c9-ad0f-04064abf6213
+data[1:2,100000:100850]
+
+# ╔═╡ 7e61d123-91c6-477c-8063-b5fb430248d0
+times
 
 # ╔═╡ 16cc6b82-32a4-4561-91b7-19c461a98393
 describe(data_clipped')
-
-# ╔═╡ 097f9ecd-3e41-4f45-8ae0-7adb82c23027
-
 
 # ╔═╡ 1f1127c5-5c8a-4814-bef4-e77435a30619
 # ranges = range.(onsets.-50 , onsets.+100; step=1)
@@ -83,17 +99,57 @@ describe(data_clipped')
 # data[:,ranges]
 
 # ╔═╡ e48bffc0-a37f-4bee-9e19-1f3044e26128
-eeglabdata.annotations[1]
+eeglabdata
 
 # ╔═╡ 765cda58-98fd-49c1-ac16-648961f97bcf
 # [annotation["description"] for annotation in eeglabdata.annotations if re.search("ET",annotation["description"])]
-[annotation["onset"] for annotation in eeglabdata.annotations if "ET" in annotation["description"]]
+[annotation["onset"] for annotation in eeglabdata.annotations if "sacc" in annotation["description"]][11000:end]
 
 # ╔═╡ 8f94d658-2a64-4f49-afd1-401dfa68f645
-limo_epochs = PyMNE.datasets.limo.load_data(subject=1,path="~/MNE/DATA",update_path=false)
+# limo_epochs = PyMNE.datasets.limo.load_data(subject=1,path="~/MNE/DATA",update_path=false)
 
 # ╔═╡ ee0ba9d1-2b78-4ec2-858f-4d4a911197ad
-limo_epochs.get_data()
+# limo_epochs.get_data()
+
+# ╔═╡ fb5a9ba8-b0d1-419c-8fe0-5036ef30f4e0
+eyedata_clipped = data[[1,2,4,5],4746000:4748000]#4752000:4754000]
+
+# ╔═╡ e17098a3-7cc5-42f3-87b0-a14424b62b07
+df = DataFrame(eyedata_clipped',:auto)
+
+# ╔═╡ 4b6405c6-0607-490b-995c-6a69b0ccb28d
+begin
+	describe(df)
+end
+
+# ╔═╡ b54b1a76-b356-4385-ad6d-c0742915acfd
+begin
+	n = nrow(df)
+	row_index = collect(1:n)
+	norm_row = (row_index .- minimum(row_index)) ./ (maximum(row_index) - minimum(row_index))
+	
+end
+
+# ╔═╡ 097f9ecd-3e41-4f45-8ae0-7adb82c23027
+scatter(eyedata_clipped[1:2,:],
+		color = norm_row, colormap=:viridis)
+
+# ╔═╡ a9291c08-2e80-4dc8-b9f1-75e5c7c6a82d
+scatter(df.x1, df.x3, color = norm_row)
+
+# ╔═╡ 9f1b884e-626d-4d1f-b1ec-3c79b6c680d1
+scatter(df.x2, df.x4, color = norm_row)
+
+# ╔═╡ 8f5bfab4-900b-4ac9-9611-1645c6e11c71
+begin
+	clip_idx = 2504000:2506000 # 4746000:4748000
+	large_saccade_idx = findall(x -> pyconvert(Float64,x) >=70, collect(eeglabdata.annotations.duration))
+	
+	onset_samples = pyconvert(Array, eeglabdata.annotations.onset[large_saccade_idx])
+	durations = pyconvert(Array, eeglabdata.annotations.duration[large_saccade_idx])
+	saccade_info = [large_saccade_idx onset_samples durations]
+	# eeglabdata.annotations[12628]
+end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -2319,20 +2375,27 @@ version = "3.6.0+0"
 # ╠═06d5939e-b809-4f20-9e50-d87e559de8f9
 # ╠═cbf1142d-627d-43c6-bf20-97c52dac1a5d
 # ╠═e213b142-a26c-407c-831e-28f17085a05d
-# ╠═bc2ec165-aca3-4e80-b0c3-d1b45e338844
-# ╠═bd3b4f22-86a2-4fe1-b0c7-d1e67c45555a
 # ╠═bb31584f-725f-4709-ac83-8a1a2b3d5528
 # ╠═edd40bf4-ef00-4fcf-98b0-c5552f9e084b
 # ╠═36360d9e-541a-46dc-af21-90cf5b1cd5c5
 # ╠═b1248d60-931e-4947-beed-318e6db42850
-# ╠═e8100fd0-55b2-4cb2-b819-447ffde77b39
+# ╠═aec31356-4a19-42d1-b0c6-f13ecbc4ae11
+# ╠═c392f6d7-c744-45c9-ad0f-04064abf6213
+# ╠═7e61d123-91c6-477c-8063-b5fb430248d0
 # ╠═16cc6b82-32a4-4561-91b7-19c461a98393
 # ╠═097f9ecd-3e41-4f45-8ae0-7adb82c23027
 # ╠═1f1127c5-5c8a-4814-bef4-e77435a30619
 # ╠═b18b6526-8772-4e7b-9975-49a1d3b774f8
 # ╠═e48bffc0-a37f-4bee-9e19-1f3044e26128
 # ╠═765cda58-98fd-49c1-ac16-648961f97bcf
-# ╟─8f94d658-2a64-4f49-afd1-401dfa68f645
+# ╠═8f94d658-2a64-4f49-afd1-401dfa68f645
 # ╠═ee0ba9d1-2b78-4ec2-858f-4d4a911197ad
+# ╠═fb5a9ba8-b0d1-419c-8fe0-5036ef30f4e0
+# ╠═e17098a3-7cc5-42f3-87b0-a14424b62b07
+# ╠═4b6405c6-0607-490b-995c-6a69b0ccb28d
+# ╠═a9291c08-2e80-4dc8-b9f1-75e5c7c6a82d
+# ╠═9f1b884e-626d-4d1f-b1ec-3c79b6c680d1
+# ╠═b54b1a76-b356-4385-ad6d-c0742915acfd
+# ╠═8f5bfab4-900b-4ac9-9611-1645c6e11c71
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
