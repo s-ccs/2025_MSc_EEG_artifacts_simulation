@@ -25,6 +25,11 @@ begin
 	using TopoPlots
 end
 
+# ╔═╡ a2a75594-a508-4a52-9159-04ac87a1a0ed
+begin
+	using CSV # to import real data from file
+end
+
 # ╔═╡ 5e6b5bca-bd66-4325-8744-1afe2e83a04f
 begin
 	using PlutoLinks # to watch and reload the utility scripts file
@@ -40,7 +45,28 @@ end
 using PlutoUI
 
 # ╔═╡ c9125a84-e898-11ef-1440-138458aa6009
-@use_file include("../scripts/utils.jl") 
+begin
+	# @use_file 
+	include("../scripts/utils.jl")
+	# MyModule = @ingredients("../scripts/utils.jl")
+	# @use_file "../scripts/utils.jl"
+	# a=1
+end
+
+# ╔═╡ 0c03a7a7-baac-4b78-a6d3-6cea17b66da1
+begin
+	# to import ET+EEG recording data, previously synchronised and exported in python/mne
+	# using Unfold
+	# # using DataFrames
+	# using CondaPkg
+	# using PyMNE
+end
+
+# ╔═╡ 915749b1-0cad-48cd-87a4-3bf4150674e7
+methods(read_new_hartmut)
+
+# ╔═╡ 167016a3-abaa-42fc-8d35-818c58376481
+a=1
 
 # ╔═╡ c24e4fb9-adc3-474b-bafc-12130490260c
 begin
@@ -58,14 +84,21 @@ end
 
 # ╔═╡ 98b56171-6eda-4d9b-89bf-5c3098fa37f1
 begin
+	x=a+1
 	eyemodel, electrode_pos, lsi_eyemodel = import_model()
 end
 
 # ╔═╡ 2cf0e611-56b4-4b96-a43c-519d683251d5
-setup_eyemodel(eyemodel, lsi_eyemodel)
+begin
+	y=x+1
+	setup_eyemodel(eyemodel, lsi_eyemodel)
+end
 
 # ╔═╡ 70ad93a5-3f94-4fdc-b3c3-5ca7a503485c
-eyemodel
+begin
+	y
+	eyemodel
+end
 
 # ╔═╡ 13c37f0e-aedb-46be-9e50-9955536041de
 
@@ -94,6 +127,19 @@ begin
 	@info "@NOTE defining gaze vectors for pure horizontal and vertical eye movements"
 end
 
+# ╔═╡ ea7516aa-1848-4b9a-b928-be8f738a29f4
+begin
+	# dataframe = new DataFrame()
+	data_frame = CSV.read("clipped_data_2025-07-16-pm.csv",DataFrame)
+	data = Matrix(data_frame)
+end
+
+# ╔═╡ 61be3596-2317-48b6-9a7a-9ed72ee9200d
+begin
+	# gd_realdata = data[1:2,:]
+	# gazevectors_realdata = hcat(gazevec_from_angle_3d.(gd_realdata[1,:],gd_realdata[2,:]))
+end
+
 # ╔═╡ 27565b1b-50da-49b2-8dba-9cf7d68845f2
 begin
 	@info "@NOTE: defining electrodes of interest"
@@ -101,93 +147,229 @@ begin
 	# set_theme!(figure_padding = (10,100,10,10))
 end
 
-# ╔═╡ d9add875-4e6a-4e56-bd51-1711cefac056
-# topoplot_series ensemble
-# plot_toposeries_lf(leadfields)
-
-# ╔═╡ 35263c3c-771f-49d5-b49f-847928ad4270
-# topoplot_series crd
-# plot_toposeries_lf(leadfields_crd)
-
-# ╔═╡ 6c32c1a6-ed3e-4012-aa5f-159d50e438f6
-EEG = matread("../_research/exported_epochs_2025-07-07.set")
-
-# ╔═╡ ca9f5b20-f55c-4339-b5c6-62de6a7a9766
-begin
-	using DataStructures
-
-	c = counter(EEG["event"]["type"])
-end
-
-# ╔═╡ b0f728ba-f4e5-48a0-8e34-bf05166227cf
-EEG["event"]
-
-# ╔═╡ bfed30e4-5fcd-4b19-b704-aa1bf38e4d51
-begin
-	# EEG["chanlocs"]["labels"]
-	xpos = EEG["data"][1,:,:]#./260
-	ypos = EEG["data"][2,:,:]#./260
-	gazevectors_mne = hcat(gazevec_from_angle_3d.(xpos,ypos))
-end
-
-# ╔═╡ 9ba1bae3-941d-4f43-ad3a-88804d5fc216
-@info xpos, ypos
-
-# ╔═╡ c8d1f713-f5e5-4d7f-aedf-2164d9957587
-describe(EEG)
-
-# ╔═╡ ac55fbff-08c5-446f-94d5-110b82f8ac96
-plot(xpos[:,2], ypos[:,2])
-
 # ╔═╡ c64d7479-b554-40d1-b7cb-a78986a4130c
 begin
-	gazevectors = gazevectors_mne #gazevectors_vr[1:1500] #gazevectors_mne[1:500,1] 
+	z=y+1
+	# gazevectors = gazevectors_realdata # gazevectors_horiz #gazevectors_mne 
 	
 end
 
 # ╔═╡ 80078025-fd4b-4be5-b1fc-226cb912948d
-# leadfields = leadfields_crd
+begin
+	x
+	# leadfields_crd = simulate_crd(eyemodel, gazevectors)
+	# leadfields = leadfields_crd  
+	
+	leadfields_dataframe = CSV.read("simulated_2025-07-17.csv",DataFrame)
+	leadfields = Matrix(leadfields_dataframe)
+end
+
+# ╔═╡ 022c7dbb-47f5-4336-8a52-672d379bb398
+begin
+	
+	function leadfield_specific_sources_orientations(model,idx,equiv_orientations)
+		# take just a selected subset of points in the model, along with a new orientation for those points, and calculate the sum of leadfields of just these points with the given orientation. 
+	    equiv_ori_model = model["orientation"]
+	    
+	    for ii in idx
+	        equiv_ori_model[ii,:] = equiv_orientations[:]
+	    end
+	    
+	    mag_eyemodel_equiv = magnitude(eyemodel["leadfield"],equiv_ori_model)
+	    mag = sum(mag_eyemodel_equiv[:,ii] for ii in idx)
+	    return mag
+	end
+		
+	# leadfields_crd = zeros(227,length(gazevectors)) 
+	# eyecenter_idx = [lsi_eyemodel["EyeCenter_left"][1],lsi_eyemodel["EyeCenter_right"][1]] #TODO remove duplication of calculating center indices
+	
+	# for ix in eachindex(gazevectors) # 1:length(gazevectors) #TODO delete this comment once it's proven to work
+	# 	# calculate leadfield due to 2 individual CRD sources and add
+	# 	leadfields_crd[:,ix] = (
+	# 		leadfield_specific_sources_orientations(deepcopy(eyemodel),eyecenter_idx,gazevectors[ix])
+	# 	)
+	# end
+
+	function simulate_crd(eyemodel, gazevectors) # TODO add type & dimensions
+	    leadfields_crd = zeros(227,length(gazevectors)) # TODO replace hardcoded 227 with number of channels in model?
+		eyecenter_idx = [lsi_eyemodel["EyeCenter_left"][1],lsi_eyemodel["EyeCenter_right"][1]] #TODO remove duplication of calculating center indices
+		
+		for ix in eachindex(gazevectors) # 1:length(gazevectors) #TODO delete this comment once it's proven to work
+			# calculate leadfield due to 2 individual CRD sources and add
+			leadfields_crd[:,ix] = (
+				leadfield_specific_sources_orientations(deepcopy(eyemodel),eyecenter_idx,gazevectors[ix])
+			)
+		end
+
+ 	   return leadfields_crd
+	end
+
+	methods(simulate_crd)
+end
 
 # ╔═╡ aee47309-9b58-41d3-a334-bc1f820fcc40
+# plot_potentials_lf(leadfields, electrode_indices, eyemodel["electrodes"]["label"][electrode_indices], 1:length(gaze_angles_pure), "title1")
 
+# ╔═╡ ff7d8e53-fed6-4ca3-9492-60c54d2e597c
+# plot_erp(leadfields'[:,[7, 154,151]])
+# plot_erp(leadfields'[:,:])
 
-# ╔═╡ 76e5a4e4-f439-4d90-8caa-e1894905f0e3
+# ╔═╡ 052808c0-e480-4f09-9f49-d879f106e7ac
+lf = leadfields[:,:].-Statistics.mean(leadfields[:,:],dims=2)
 
+# ╔═╡ 0b3ea261-80a0-4309-808b-7b07b1665000
+# plot_erp(lf'[:,[7, 154,151]])
+# plot_erp(lf'[:,electrode_indices])
+plot_erp(lf'[:,:])
 
-# ╔═╡ bf3601b8-7eb6-40a9-8fee-0284150ecf1c
-# gazevectors_mne[1:100,1]
+# ╔═╡ 02eac955-4885-40de-b918-80bcd9f5883c
+describe(lf2)
 
-# ╔═╡ 4370c49e-d64e-4dc4-85ac-843571591bc4
-# plot_erp(leadfields[:,:])
+# ╔═╡ e8f79c9f-81b0-4da2-a5de-d11af4dc0691
+h = UnfoldSim.Hartmut()
 
-# ╔═╡ 5d857ba8-12ee-45a7-8606-672d3003ad53
-# xpos, ypos
+# ╔═╡ 0435320e-3552-4eae-a877-a74bd54d0e12
+begin
+	@info "EOG" in h.electrodes["label"]
+	h.electrodes
+end
 
-# ╔═╡ 32d1b694-fd5a-4826-a5f0-e4e061762e67
+# ╔═╡ 5b0ad2f3-09b1-426d-a824-968421e7d0c4
+WGLMakie.Page()
 
+# ╔═╡ 64bc4dc1-a880-48d5-9d54-7fbb735ec636
+begin
+	# CondaPkg.add("pandas")
+	# CondaPkg.add("mne") # due to a bug in PyMNE https://github.com/beacon-biosignals/PyMNE.jl/issues/38 - we have to add mne additionally
+end
 
-# ╔═╡ d0e418b0-b276-4ead-816f-fc4427fea05a
+# ╔═╡ f5aad6f8-9fc0-401f-92b3-adb217a205f0
+begin
+	# eeglabdata = PyMNE.io.read_raw_eeglab("../_research/data/2024FreeViewingMSCOCO/sub-030/from-mne/synced_data_export.set")
+end
 
+# ╔═╡ b0acc896-7cc4-4e05-a18e-bbac011c1b90
+# data = pyconvert(Array, eeglabdata.get_data())
 
-# ╔═╡ 61bfbfa8-00a5-4ada-859f-b1299e0c0623
+# ╔═╡ 1075b425-af36-4a1f-a529-373f18119798
+# using CSV:0.9
 
+# ╔═╡ 9fea0970-4810-4d85-951d-35b140caaccc
+# CSV.write("synced-data-matrix.csv", Tables.table(data))
 
-# ╔═╡ 7e45fd82-c843-4c67-ab18-627de895b55d
+# ╔═╡ a16552bb-b9a2-4db3-919f-b1eb6eb590da
+begin
+	f_topoplots = Figure()
+	positions=pos2dfrom3d(h.electrodes["pos"])
+	# plot_topoplotseries(, positions)
+	
+	df = UnfoldMakie.eeg_array_to_dataframe(lf[:, 1:700].*10e5, string.(1:length(positions)));
+end
 
+# ╔═╡ e7754516-5b1c-4f5c-94e2-06059b1718ba
+begin
+	df0 = UnfoldMakie.eeg_array_to_dataframe(leadfields[:, 1:700].*10e5, string.(1:length(positions)));
+end
 
-# ╔═╡ fac365c8-30e9-429a-be0a-79dd4cd76af9
+# ╔═╡ 621069ca-51a2-407e-a500-095c1e9f0a18
+df_realdata = UnfoldMakie.eeg_array_to_dataframe(data[8:135, 1:700].*10e5,string.(1:128));
 
+# ╔═╡ 21e9dac7-7aec-4464-b60a-0ed13f925a0a
+plot_topoplotseries(
+	    df0;
+	    # bin_width,
+		bin_num = 10, 
+		nrows = 2,
+	    positions = positions,
+	    axis = (; xlabel = "Time windows [s]"),
+	)
 
-# ╔═╡ 83826c34-a41d-434d-aa81-302b2d2a8d80
-testfunction()
+# ╔═╡ da7e07ad-4a8f-4520-ac3d-f0a15c42c4f4
+plot_topoplotseries(
+	    df;
+		bin_num = 10, 
+		nrows = 2,
+	    positions = positions,
+	    axis = (; xlabel = "Time windows [s]"),
+	)
+
+# ╔═╡ 7e71613b-0690-4212-8656-dbcfee5f305e
+# begin
+# 		bin_width = 250
+# 	plot_topoplotseries(
+# 	    df;
+# 	    # bin_width,
+# 		bin_num = 10, 
+# 		nrows = 2,
+# 	    positions = positions,
+# 	    axis = (; xlabel = "Time windows [s]"),
+# 	)
+# end
+
+# ╔═╡ 5e71df64-3365-4f0a-bd72-82a2d938ddd5
+# topoplot_leadfields_difference(
+# 		lf[:,1].*10e5, lf[:,500].*10e5,
+# 		positions; labels = ["CRD - t=1", "CRD - t=500ms", "CRD Difference plot","Difference plot with electrode positions"], commoncolorrange=false)
+
+# ╔═╡ dce97f10-1e31-46c2-b861-12421486e437
+# topoplot_leadfields_difference(
+# 		lf[:,400].*10e5, lf[:,600].*10e5,
+# 		positions; labels = ["CRD - t=400ms", "CRD - t=600ms", "CRD Difference plot","Difference plot with electrode positions"], commoncolorrange=false)
+
+# ╔═╡ 6104b69f-48ca-4da1-8f6b-04f050848916
+# topoplot_leadfields_difference(
+# 		leadfields[:,400].*10e5, leadfields[:,700].*10e5,
+# 		positions; labels = ["CRD - t=400ms", "CRD - t=600ms", "CRD Difference plot","Difference plot with electrode positions"], commoncolorrange=false)
+
+# ╔═╡ 15eb05af-6ffb-488b-9892-165b7966e3b2
+topoplot_leadfields_difference(
+		leadfields[:,1250].*10e7, leadfields[:,1500].*10e5,
+		positions; labels = ["t=1250ms", "t=1500ms", "CRD sim. Difference plot","Difference plot with electrode positions"], commoncolorrange=false)
+
+# ╔═╡ 7d2ef0e0-e0e5-4c2c-a961-38fde9f8c1d2
+begin
+	fig = Figure()
+	plot_topoplot!(fig,
+		leadfields_dataframe[:,1],
+		positions=positions; 
+		layout=(; use_colorbar=false),
+        visual = (;
+            label_text = true,
+            label_scatter = (
+                markersize = 5,
+                color = "white",
+                strokecolor = "green",
+                strokewidth = 2,
+            ),
+        ),
+        labels = h.electrodes["label"]
+	)
+end
+
+# ╔═╡ 3c4394b9-7b43-42f6-b5ac-368e749264c6
+TopoPlots.example_data()
+
+# ╔═╡ a21a6c86-5952-427a-87ce-22c7782f9f22
+begin
+	df_lf = DataFrame(leadfields',:auto)
+	desc_info = describe(df_lf)
+	@info desc_info.max - desc_info.min
+	desc_info
+end
+
+# ╔═╡ 73fc0bf2-5dcd-4001-9362-3df87dd4ca92
+WGLMakie.Page()
+
+# ╔═╡ cdaa7c62-90b1-4367-9d9a-bcb78684a2ea
+# CSV.write("simulated.csv",DataFrame(leadfields,:auto))
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
 HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
@@ -203,10 +385,10 @@ UnfoldSim = "ed8ae6d2-84d3-44c6-ab46-0baf21700804"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
 [compat]
+CSV = "~0.10.15"
 CairoMakie = "~0.13.1"
 CoordinateTransformations = "~0.6.4"
 DataFrames = "~1.7.0"
-DataStructures = "~0.18.22"
 FileIO = "~1.17.0"
 HDF5 = "~0.17.2"
 MAT = "~0.10.7"
@@ -225,7 +407,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "e0437b517b4497f47f298e8bd18e5c66d1ef067d"
+project_hash = "86fe4fd4ec389d71533201ce4a8f801b95446e9d"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "e2478490447631aedba0823d4d7a80b2cc8cdb32"
@@ -484,6 +666,12 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "e329286945d0cfc04456972ea732551869af1cfc"
 uuid = "4e9b3aee-d8a1-5a3d-ad8b-7d824db253f0"
 version = "1.0.1+0"
+
+[[deps.CSV]]
+deps = ["CodecZlib", "Dates", "FilePathsBase", "InlineStrings", "Mmap", "Parsers", "PooledArrays", "PrecompileTools", "SentinelArrays", "Tables", "Unicode", "WeakRefStrings", "WorkerUtilities"]
+git-tree-sha1 = "deddd8725e5e1cc49ee205a1964256043720a6c3"
+uuid = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+version = "0.10.15"
 
 [[deps.Cairo]]
 deps = ["Cairo_jll", "Colors", "Glib_jll", "Graphics", "Libdl", "Pango_jll"]
@@ -2674,6 +2862,12 @@ git-tree-sha1 = "d76bbe29bdac0dc4096e3838c044ed079bb8682b"
 uuid = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 version = "0.11.1"
 
+[[deps.WeakRefStrings]]
+deps = ["DataAPI", "InlineStrings", "Parsers"]
+git-tree-sha1 = "b1be2855ed9ed8eac54e5caff2afcdb442d52c23"
+uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
+version = "1.4.2"
+
 [[deps.WebP]]
 deps = ["CEnum", "ColorTypes", "FileIO", "FixedPointNumbers", "ImageCore", "libwebp_jll"]
 git-tree-sha1 = "aa1ca3c47f119fbdae8770c29820e5e6119b83f2"
@@ -2691,6 +2885,11 @@ deps = ["LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "c1a7aa6219628fcd757dede0ca95e245c5cd9511"
 uuid = "efce3f68-66dc-5838-9240-27a6d6f5f9b6"
 version = "1.0.0"
+
+[[deps.WorkerUtilities]]
+git-tree-sha1 = "cd1659ba0d57b71a464a29e64dbc67cfe83d54e7"
+uuid = "76eceee3-57b5-4d4a-8e66-0e911cebbf60"
+version = "1.6.1"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
@@ -2846,11 +3045,15 @@ version = "3.6.0+0"
 """
 
 # ╔═╡ Cell order:
-# ╟─3a271e46-e43f-46e0-84bf-32192c9b8fe5
+# ╠═3a271e46-e43f-46e0-84bf-32192c9b8fe5
+# ╠═a2a75594-a508-4a52-9159-04ac87a1a0ed
+# ╠═0c03a7a7-baac-4b78-a6d3-6cea17b66da1
 # ╟─5e6b5bca-bd66-4325-8744-1afe2e83a04f
 # ╟─b1e20630-9f48-4ed0-9390-7da4f084830f
 # ╟─f99cff61-c795-4f86-af35-c4f6cb5ab21a
 # ╠═c9125a84-e898-11ef-1440-138458aa6009
+# ╠═915749b1-0cad-48cd-87a4-3bf4150674e7
+# ╠═167016a3-abaa-42fc-8d35-818c58376481
 # ╠═c24e4fb9-adc3-474b-bafc-12130490260c
 # ╠═98b56171-6eda-4d9b-89bf-5c3098fa37f1
 # ╠═2cf0e611-56b4-4b96-a43c-519d683251d5
@@ -2858,28 +3061,39 @@ version = "3.6.0+0"
 # ╠═13c37f0e-aedb-46be-9e50-9955536041de
 # ╠═28f897bc-1c6d-4c10-888b-c83060c3389b
 # ╠═c23077be-a053-4e8c-957c-0ea11d037b22
+# ╠═ea7516aa-1848-4b9a-b928-be8f738a29f4
+# ╠═61be3596-2317-48b6-9a7a-9ed72ee9200d
 # ╠═27565b1b-50da-49b2-8dba-9cf7d68845f2
-# ╠═d9add875-4e6a-4e56-bd51-1711cefac056
-# ╠═35263c3c-771f-49d5-b49f-847928ad4270
-# ╠═6c32c1a6-ed3e-4012-aa5f-159d50e438f6
-# ╠═b0f728ba-f4e5-48a0-8e34-bf05166227cf
-# ╠═ca9f5b20-f55c-4339-b5c6-62de6a7a9766
-# ╠═bfed30e4-5fcd-4b19-b704-aa1bf38e4d51
-# ╠═9ba1bae3-941d-4f43-ad3a-88804d5fc216
-# ╠═c8d1f713-f5e5-4d7f-aedf-2164d9957587
-# ╠═ac55fbff-08c5-446f-94d5-110b82f8ac96
 # ╠═c64d7479-b554-40d1-b7cb-a78986a4130c
 # ╠═80078025-fd4b-4be5-b1fc-226cb912948d
+# ╟─022c7dbb-47f5-4336-8a52-672d379bb398
 # ╠═aee47309-9b58-41d3-a334-bc1f820fcc40
-# ╠═76e5a4e4-f439-4d90-8caa-e1894905f0e3
-# ╠═bf3601b8-7eb6-40a9-8fee-0284150ecf1c
-# ╠═4370c49e-d64e-4dc4-85ac-843571591bc4
-# ╠═5d857ba8-12ee-45a7-8606-672d3003ad53
-# ╠═32d1b694-fd5a-4826-a5f0-e4e061762e67
-# ╠═d0e418b0-b276-4ead-816f-fc4427fea05a
-# ╠═61bfbfa8-00a5-4ada-859f-b1299e0c0623
-# ╠═7e45fd82-c843-4c67-ab18-627de895b55d
-# ╠═fac365c8-30e9-429a-be0a-79dd4cd76af9
-# ╠═83826c34-a41d-434d-aa81-302b2d2a8d80
+# ╠═ff7d8e53-fed6-4ca3-9492-60c54d2e597c
+# ╠═052808c0-e480-4f09-9f49-d879f106e7ac
+# ╠═0b3ea261-80a0-4309-808b-7b07b1665000
+# ╠═02eac955-4885-40de-b918-80bcd9f5883c
+# ╠═e8f79c9f-81b0-4da2-a5de-d11af4dc0691
+# ╠═0435320e-3552-4eae-a877-a74bd54d0e12
+# ╠═5b0ad2f3-09b1-426d-a824-968421e7d0c4
+# ╠═64bc4dc1-a880-48d5-9d54-7fbb735ec636
+# ╠═f5aad6f8-9fc0-401f-92b3-adb217a205f0
+# ╠═b0acc896-7cc4-4e05-a18e-bbac011c1b90
+# ╠═1075b425-af36-4a1f-a529-373f18119798
+# ╠═9fea0970-4810-4d85-951d-35b140caaccc
+# ╠═a16552bb-b9a2-4db3-919f-b1eb6eb590da
+# ╠═e7754516-5b1c-4f5c-94e2-06059b1718ba
+# ╠═621069ca-51a2-407e-a500-095c1e9f0a18
+# ╠═21e9dac7-7aec-4464-b60a-0ed13f925a0a
+# ╠═da7e07ad-4a8f-4520-ac3d-f0a15c42c4f4
+# ╠═7e71613b-0690-4212-8656-dbcfee5f305e
+# ╠═5e71df64-3365-4f0a-bd72-82a2d938ddd5
+# ╠═dce97f10-1e31-46c2-b861-12421486e437
+# ╠═6104b69f-48ca-4da1-8f6b-04f050848916
+# ╠═15eb05af-6ffb-488b-9892-165b7966e3b2
+# ╠═7d2ef0e0-e0e5-4c2c-a961-38fde9f8c1d2
+# ╠═3c4394b9-7b43-42f6-b5ac-368e749264c6
+# ╠═a21a6c86-5952-427a-87ce-22c7782f9f22
+# ╠═73fc0bf2-5dcd-4001-9362-3df87dd4ca92
+# ╠═cdaa7c62-90b1-4367-9d9a-bcb78684a2ea
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
