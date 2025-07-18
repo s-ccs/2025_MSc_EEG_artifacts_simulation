@@ -4,6 +4,9 @@
 using Markdown
 using InteractiveUtils
 
+# ╔═╡ 5e3e6f1f-4811-435d-b90e-61807266b569
+using CSV
+
 # ╔═╡ f4c99926-5cf1-11f0-0dd6-4132b7230b93
 begin
 	using Unfold
@@ -24,6 +27,9 @@ using UnfoldMakie, CairoMakie
 # ╔═╡ c89ee005-db1e-49d4-88b1-341169eb9aa4
 using Statistics
 
+# ╔═╡ 035f4ab9-7abb-4284-89d4-8049422f0ce8
+using JLD2
+
 # ╔═╡ 446d8066-a800-4e2a-9248-910379b943cc
 begin
 	CondaPkg.add("pandas")
@@ -41,12 +47,38 @@ eeglabdata.annotations[1]
 
 # ╔═╡ bb31584f-725f-4709-ac83-8a1a2b3d5528
 begin
-	data = pyconvert(Array, eeglabdata.get_data())
+	data = pyconvert(Array, eeglabdata.get_data(start=4746000, stop=4748000))
 end
+
+# ╔═╡ fdfc5ce4-874b-4bae-9d67-dfd6d5117691
+CSV.write("clipped_data.csv",DataFrame(data,:auto))
 
 # ╔═╡ edd40bf4-ef00-4fcf-98b0-c5552f9e084b
 begin
-	onsets = Int.(round.(pyconvert.(Float64,[annotation["onset"].*1000 for annotation in eeglabdata.annotations if "ET" in annotation["description"]])))
+	# onsets = Int.(round.(pyconvert.(Float64,[annotation["onset"].*1000 for annotation in eeglabdata.annotations if "ET" in annotation["description"]])))
+end
+
+# ╔═╡ 36360d9e-541a-46dc-af21-90cf5b1cd5c5
+begin
+	data_clipped = data[8:135,:] # [39,61,64,71] # 4746000:4748000
+	# data_clipped = data_clipped[:,:].-Statistics.mean(data_clipped[:,1:1000],dims=2)
+	data_clipped
+	f_clipped = plot_erp(data_clipped')
+	# vlines!(xs)
+	f_clipped
+end
+
+# ╔═╡ ae57975d-ad4e-4be4-85b9-2d7136b1029c
+begin
+	data_clipped_baselined = data_clipped[:,:].-Statistics.mean(data_clipped[:,:],dims=2)
+	plot_erp(data_clipped_baselined')
+end
+
+# ╔═╡ 16cc6b82-32a4-4561-91b7-19c461a98393
+begin
+	desc_info = describe(DataFrame(data_clipped',:auto))
+	@info desc_info.max - desc_info.min
+	desc_info
 end
 
 # ╔═╡ b1248d60-931e-4947-beed-318e6db42850
@@ -56,8 +88,8 @@ begin
 	times = (139408-5000):(139408+5000)
 	times = [times...] # 10000:100850
 	# times = 4753000:4754000
-	fig, ax = lines(data[1:2,4746000:4748000], alpha=0.5, color=:red) #, xlims = (0.5, 0.5), ylims = (0.5, 0.5)
-	lines!(data[4:5,4746000:4748000], alpha=0.25, color=:green)
+	fig, ax = lines(data[1:2,:], alpha=0.5, color=:red) # 4746000:4748000
+	lines!(data[4:5,:], alpha=0.25, color=:green) # 4746000:4748000
 	ylims!(ax, -0.218, 0.218)
 	xlims!(ax, -0.2792, 0.2792)
 	fig
@@ -67,20 +99,11 @@ end
 begin
 	# plot_erp(data[1:6,4751000:4754000]')
 # plot_erp(data[[1,2,4,5],1:5000]')
-	f1 = plot_erp(data[[1,2,4,5],4746000:4748000]')
+	f1 = plot_erp(data[[1,2,4,5],:]') #4746000:4748000
 	xs = [4746.137113, 4746.425613, 4746.584113, 4746.763113, 4747.014613, 4747.189613, 4747.441613, 4747.682614, 4747.867614].*1000
 	xs = xs.-4746000
-	vlines!(xs)
+	# vlines!(xs)
 	f1
-end
-
-# ╔═╡ 36360d9e-541a-46dc-af21-90cf5b1cd5c5
-begin
-	data_clipped = data[:,4746000:4748000] # [39,61,64,71]
-	# data_clipped = data_clipped[:,:].-Statistics.mean(data_clipped[:,1:1000],dims=2)
-	f_clipped = plot_erp(data_clipped')
-	vlines!(xs)
-	f_clipped
 end
 
 # ╔═╡ c392f6d7-c744-45c9-ad0f-04064abf6213
@@ -89,14 +112,8 @@ data[1:2,100000:100850]
 # ╔═╡ 7e61d123-91c6-477c-8063-b5fb430248d0
 times
 
-# ╔═╡ 16cc6b82-32a4-4561-91b7-19c461a98393
-describe(data_clipped')
-
-# ╔═╡ 1f1127c5-5c8a-4814-bef4-e77435a30619
-# ranges = range.(onsets.-50 , onsets.+100; step=1)
-
-# ╔═╡ b18b6526-8772-4e7b-9975-49a1d3b774f8
-# data[:,ranges]
+# ╔═╡ 097f9ecd-3e41-4f45-8ae0-7adb82c23027
+# scatter(eyedata_clipped[1:2,:], color = norm_row, colormap=:viridis)
 
 # ╔═╡ e48bffc0-a37f-4bee-9e19-1f3044e26128
 eeglabdata
@@ -105,14 +122,8 @@ eeglabdata
 # [annotation["description"] for annotation in eeglabdata.annotations if re.search("ET",annotation["description"])]
 [annotation["onset"] for annotation in eeglabdata.annotations if "sacc" in annotation["description"]][11000:end]
 
-# ╔═╡ 8f94d658-2a64-4f49-afd1-401dfa68f645
-# limo_epochs = PyMNE.datasets.limo.load_data(subject=1,path="~/MNE/DATA",update_path=false)
-
-# ╔═╡ ee0ba9d1-2b78-4ec2-858f-4d4a911197ad
-# limo_epochs.get_data()
-
 # ╔═╡ fb5a9ba8-b0d1-419c-8fe0-5036ef30f4e0
-eyedata_clipped = data[[1,2,4,5],4746000:4748000]#4752000:4754000]
+eyedata_clipped = data[[1,2,4,5],:]#4752000:4754000] # 4746000:4748000
 
 # ╔═╡ e17098a3-7cc5-42f3-87b0-a14424b62b07
 df = DataFrame(eyedata_clipped',:auto)
@@ -122,6 +133,12 @@ begin
 	describe(df)
 end
 
+# ╔═╡ a9291c08-2e80-4dc8-b9f1-75e5c7c6a82d
+# scatter(df.x1, df.x2, color = norm_row)
+
+# ╔═╡ 9f1b884e-626d-4d1f-b1ec-3c79b6c680d1
+# scatter(df.x2, df.x4, color = norm_row)
+
 # ╔═╡ b54b1a76-b356-4385-ad6d-c0742915acfd
 begin
 	n = nrow(df)
@@ -130,42 +147,36 @@ begin
 	
 end
 
-# ╔═╡ 097f9ecd-3e41-4f45-8ae0-7adb82c23027
-scatter(eyedata_clipped[1:2,:],
-		color = norm_row, colormap=:viridis)
-
-# ╔═╡ a9291c08-2e80-4dc8-b9f1-75e5c7c6a82d
-scatter(df.x1, df.x3, color = norm_row)
-
-# ╔═╡ 9f1b884e-626d-4d1f-b1ec-3c79b6c680d1
-scatter(df.x2, df.x4, color = norm_row)
-
 # ╔═╡ 8f5bfab4-900b-4ac9-9611-1645c6e11c71
 begin
-	clip_idx = 2504000:2506000 # 4746000:4748000
-	large_saccade_idx = findall(x -> pyconvert(Float64,x) >=70, collect(eeglabdata.annotations.duration))
+	# clip_idx = 2504000:2506000 # 4746000:4748000
+	# large_saccade_idx = findall(x -> pyconvert(Float64,x) >=70, collect(eeglabdata.annotations.duration))
 	
-	onset_samples = pyconvert(Array, eeglabdata.annotations.onset[large_saccade_idx])
-	durations = pyconvert(Array, eeglabdata.annotations.duration[large_saccade_idx])
-	saccade_info = [large_saccade_idx onset_samples durations]
+	# onset_samples = pyconvert(Array, eeglabdata.annotations.onset[large_saccade_idx])
+	# durations = pyconvert(Array, eeglabdata.annotations.duration[large_saccade_idx])
+	# saccade_info = [large_saccade_idx onset_samples durations]
 	# eeglabdata.annotations[12628]
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 PyMNE = "6c5003b2-cbe8-491c-a0d1-70088e6a0fd6"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 Unfold = "181c99d8-e21b-4ff3-b70b-c233eddec679"
 UnfoldMakie = "69a5ce3b-64fb-4f22-ae69-36dd4416af2a"
 
 [compat]
+CSV = "~0.10.15"
 CairoMakie = "~0.13.10"
 CondaPkg = "~0.2.29"
 DataFrames = "~1.7.0"
+JLD2 = "~0.5.13"
 PyMNE = "~0.2.3"
 Unfold = "~0.8.4"
 UnfoldMakie = "~0.5.18"
@@ -177,7 +188,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.5"
 manifest_format = "2.0"
-project_hash = "839ab00a7b5a829d8fa31e21600692810af7d979"
+project_hash = "6a48f3377c1ab3b01a3ebfead7828f078961c89f"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -390,6 +401,12 @@ git-tree-sha1 = "e329286945d0cfc04456972ea732551869af1cfc"
 uuid = "4e9b3aee-d8a1-5a3d-ad8b-7d824db253f0"
 version = "1.0.1+0"
 
+[[deps.CSV]]
+deps = ["CodecZlib", "Dates", "FilePathsBase", "InlineStrings", "Mmap", "Parsers", "PooledArrays", "PrecompileTools", "SentinelArrays", "Tables", "Unicode", "WeakRefStrings", "WorkerUtilities"]
+git-tree-sha1 = "deddd8725e5e1cc49ee205a1964256043720a6c3"
+uuid = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+version = "0.10.15"
+
 [[deps.Cairo]]
 deps = ["Cairo_jll", "Colors", "Glib_jll", "Graphics", "Libdl", "Pango_jll"]
 git-tree-sha1 = "71aa551c5c33f1a4415867fe06b7844faadb0ae9"
@@ -453,6 +470,12 @@ deps = ["InteractiveUtils", "UUIDs"]
 git-tree-sha1 = "062c5e1a5bf6ada13db96a4ae4749a4c2234f521"
 uuid = "da1fd8a2-8d9e-5ec2-8556-3022fb5608a2"
 version = "1.3.9"
+
+[[deps.CodecZlib]]
+deps = ["TranscodingStreams", "Zlib_jll"]
+git-tree-sha1 = "962834c22b66e32aa10f7611c08c8ca4e20749a9"
+uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
+version = "0.7.8"
 
 [[deps.ColorBrewer]]
 deps = ["Colors", "JSON"]
@@ -2194,6 +2217,12 @@ git-tree-sha1 = "c81331b3b2e60a982be57c046ec91f599ede674a"
 uuid = "e17b2a0c-0bdf-430a-bd0c-3a23cae4ff39"
 version = "1.0.0"
 
+[[deps.WeakRefStrings]]
+deps = ["DataAPI", "InlineStrings", "Parsers"]
+git-tree-sha1 = "b1be2855ed9ed8eac54e5caff2afcdb442d52c23"
+uuid = "ea10d353-3f73-51f8-a26c-33c1cb351aa5"
+version = "1.4.2"
+
 [[deps.WebP]]
 deps = ["CEnum", "ColorTypes", "FileIO", "FixedPointNumbers", "ImageCore", "libwebp_jll"]
 git-tree-sha1 = "aa1ca3c47f119fbdae8770c29820e5e6119b83f2"
@@ -2205,6 +2234,11 @@ deps = ["LinearAlgebra", "SparseArrays"]
 git-tree-sha1 = "c1a7aa6219628fcd757dede0ca95e245c5cd9511"
 uuid = "efce3f68-66dc-5838-9240-27a6d6f5f9b6"
 version = "1.0.0"
+
+[[deps.WorkerUtilities]]
+git-tree-sha1 = "cd1659ba0d57b71a464a29e64dbc67cfe83d54e7"
+uuid = "76eceee3-57b5-4d4a-8e66-0e911cebbf60"
+version = "1.6.1"
 
 [[deps.XML2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Libiconv_jll", "Zlib_jll"]
@@ -2366,6 +2400,7 @@ version = "3.6.0+0"
 """
 
 # ╔═╡ Cell order:
+# ╠═5e3e6f1f-4811-435d-b90e-61807266b569
 # ╠═f4c99926-5cf1-11f0-0dd6-4132b7230b93
 # ╠═7edc80de-423a-4034-b0bc-f32b9e9cd9eb
 # ╠═2e876710-b3d7-4384-968e-958f2c54ccf1
@@ -2376,20 +2411,18 @@ version = "3.6.0+0"
 # ╠═cbf1142d-627d-43c6-bf20-97c52dac1a5d
 # ╠═e213b142-a26c-407c-831e-28f17085a05d
 # ╠═bb31584f-725f-4709-ac83-8a1a2b3d5528
+# ╠═fdfc5ce4-874b-4bae-9d67-dfd6d5117691
 # ╠═edd40bf4-ef00-4fcf-98b0-c5552f9e084b
 # ╠═36360d9e-541a-46dc-af21-90cf5b1cd5c5
+# ╠═ae57975d-ad4e-4be4-85b9-2d7136b1029c
+# ╠═16cc6b82-32a4-4561-91b7-19c461a98393
 # ╠═b1248d60-931e-4947-beed-318e6db42850
 # ╠═aec31356-4a19-42d1-b0c6-f13ecbc4ae11
 # ╠═c392f6d7-c744-45c9-ad0f-04064abf6213
 # ╠═7e61d123-91c6-477c-8063-b5fb430248d0
-# ╠═16cc6b82-32a4-4561-91b7-19c461a98393
 # ╠═097f9ecd-3e41-4f45-8ae0-7adb82c23027
-# ╠═1f1127c5-5c8a-4814-bef4-e77435a30619
-# ╠═b18b6526-8772-4e7b-9975-49a1d3b774f8
 # ╠═e48bffc0-a37f-4bee-9e19-1f3044e26128
 # ╠═765cda58-98fd-49c1-ac16-648961f97bcf
-# ╠═8f94d658-2a64-4f49-afd1-401dfa68f645
-# ╠═ee0ba9d1-2b78-4ec2-858f-4d4a911197ad
 # ╠═fb5a9ba8-b0d1-419c-8fe0-5036ef30f4e0
 # ╠═e17098a3-7cc5-42f3-87b0-a14424b62b07
 # ╠═4b6405c6-0607-490b-995c-6a69b0ccb28d
@@ -2397,5 +2430,6 @@ version = "3.6.0+0"
 # ╠═9f1b884e-626d-4d1f-b1ec-3c79b6c680d1
 # ╠═b54b1a76-b356-4385-ad6d-c0742915acfd
 # ╠═8f5bfab4-900b-4ac9-9611-1645c6e11c71
+# ╠═035f4ab9-7abb-4284-89d4-8049422f0ce8
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
