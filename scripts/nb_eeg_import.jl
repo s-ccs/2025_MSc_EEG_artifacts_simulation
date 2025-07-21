@@ -51,7 +51,7 @@ begin
 end
 
 # ╔═╡ fdfc5ce4-874b-4bae-9d67-dfd6d5117691
-CSV.write("clipped_data.csv",DataFrame(data,:auto))
+# CSV.write("clipped_data.csv",DataFrame(data,:auto))
 
 # ╔═╡ edd40bf4-ef00-4fcf-98b0-c5552f9e084b
 begin
@@ -60,7 +60,8 @@ end
 
 # ╔═╡ 36360d9e-541a-46dc-af21-90cf5b1cd5c5
 begin
-	data_clipped = data[8:135,:] # [39,61,64,71] # 4746000:4748000
+	data_clipped = data[8:135,:] # skip channels 1-7: x/y left, pupil left, x/y right, pupil right, DIN
+	# [39,61,64,71] # 4746000:4748000
 	# data_clipped = data_clipped[:,:].-Statistics.mean(data_clipped[:,1:1000],dims=2)
 	data_clipped
 	f_clipped = plot_erp(data_clipped')
