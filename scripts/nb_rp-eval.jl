@@ -360,7 +360,7 @@ WGLMakie.Page()
 
 # ╔═╡ 1b7166fe-8098-4545-bb39-88634476a071
 begin
-	fig_sp, ax_sp = series(1:2000,lf[electrode_indices,:];labels=["VEOGU =Fp1","VEOGL =Ex33", "HEOGL =FT9", "HEOGR =FT10", "CPz"], color=:Set1)
+	fig_sp, ax_sp = series(1:2000,lf_rereferenced[electrode_indices,:];labels=["VEOGU =Fp1","VEOGL =Ex33", "HEOGL =FT9", "HEOGR =FT10", "CPz"], color=:Set1)
 		# ax_sp.title = title
 		axislegend(ax_sp;
 		# position=(1.29,0.5)

@@ -237,9 +237,6 @@ function equiv_dipole_mag(model,idx,equiv_orientations)
 	mag = sum(mag_eyemodel_equiv[:,ii] for ii in idx)
 end
 
-# TODO # create gaze direction vectors from 3d angles (azimuth, elevation) and hcat to create a matrix (gazevec_from_angle_3d.() outputs a vector of vectors)
-# gazevectors_horiz = hcat(gazevec_from_angle_3d.(gd_horiz[:,1],gd_horiz[:,2]))
-
 
 function sim_gazevecs_ensemble() # TODO rename this and turn it into a proper function. For now, moved here from pluto notebook
 # simulate for gazevectors - ensemble method
