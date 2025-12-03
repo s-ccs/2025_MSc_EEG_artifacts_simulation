@@ -7,17 +7,13 @@
 #let abstract = [#lorem(150)]
 
 // Fill me with acknowledgments
-#let acknowledgements = "We would like to thank Nils Harmening for the discussion on the HArtMuT model and for the simulation of the new eye models with updated source positions and tissue conductivities based on the modifications we suggested."
+#let acknowledgements = "
 
-// #let declaration = "I hereby declare that the work presented in this thesis is entirely my own. I did not use any sources or aids other than those specified (including AI-based applications or tools). All literal or paraphrased quotations and citations are identified and referenced. I assure that I have not used any aids whose use has been explicitly excluded by the examiner.
+I would like to thank my supervisors, Dr. Benedikt Ehinger and Judith Schepers, for their guidance and support during my work on this thesis. 
 
-// In the appendix “Use of AI Tools,” I have documented the AI tools I have used. In addition, in the appendix “AI Outputs”, I have listed all AI-generated outputs that were relevant to the task. By submitting this work, I assume responsibility for
-// the entire product submitted. I am therefore also responsible for any AI-generated content that I have included in my work. I have checked the accuracy of the (AI-generated) statements and content to the best of my knowledge.
+I also thank Nils Harmening for the correspondence on the HArtMuT model and for the simulation of the new forward models based on our suggested modifications."
 
-// Neither this work nor any substantial parts of it have been the subject of any other examination procedure to date. I have not published this work either in part or in full to date. The electronic copy corresponds to all hard copies submitted.
-
-// Date and Signature:"
-
+// Declaration regarding own work / AI use: adapted from the guidelines of the Computer Science Department, Faculty 5, Uni-Stuttgart 
 #let declaration = [
   #include "declaration.typ"
 ]
@@ -298,6 +294,7 @@ The artifact may not be uniformly distributed across the scalp electrodes @de_ch
 Drifts manifest as a slow increase or decrease over time in the basic level around which the measured EEG signal appears. This can be extracted from the data and looks similar to the figure below.
 
 #ilt[plot of drifts]
+
 
 #pagebreak()
 = Methods
