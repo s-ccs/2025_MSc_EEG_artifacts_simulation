@@ -365,6 +365,8 @@
   listing-index: true,
   // List of abbreviations
   abbreviations: none,
+  // Declaration
+  declaration: none,
   // The content of your work.
   body,
 ) = {
@@ -787,6 +789,8 @@
   // Display appendix after the bibilography
   in-appendix.update(true)
   appendix
+
+  declaration
 
   // Display back page
   backpage()
