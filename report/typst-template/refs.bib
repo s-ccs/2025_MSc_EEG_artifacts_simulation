@@ -10,6 +10,26 @@
  title = {UnfoldSim.jl: Simulating continuous event-based time series data for EEG and beyond},
  journal = {Journal of Open Source Software}
  }
+
+ @article{huigen_investigation_2002,
+	title = {Investigation into the origin of the noise of surface electrodes},
+	volume = {40},
+	issn = {1741-0444},
+	url = {https://doi.org/10.1007/BF02344216},
+	doi = {10.1007/BF02344216},
+	abstract = {In the recording of biomedical signals, a significant noise component is introduced by the electrode. The magnitude of this noise is considerably higher than the equivalent thermal noise from the electrode impedance. As the noise in surface electrodes limits the resolution of biopotential recordings, it is important to understand its origin. It was found that the noise mainly originates in the electrolyte-skin interface and that it is highly dependent on the electrode gel used and the skin properties of the test subject. Depending on skin treatment, magnitudes between 1 and 20μVrms were measured among subjects. When the metal-electrolyte interface was allowed time to stabilise, electrodes of different metals measured face to face all showed a negligibly small noise magnitude ({\textless}1μVrms). In pre-gelled electrodes, where the metal-electrolyte interface has stabilised, no difference in noise properties was found between Ag−AgCl electrodes and other metals when measured on the skin. In subjects at rest, the contribution of EMG signals to the total noise level was shown to be negligibly small compared with the noise contribution of the electrolyte-skin interface. The magnitude of the noise of electrodes appeared to be inversely proportional to the square root of the area of the electrode on the skin.},
+	language = {en},
+	number = {3},
+	urldate = {2025-09-30},
+	journal = {Medical and Biological Engineering and Computing},
+	author = {Huigen, E. and Peper, A. and Grimbergen, C. A.},
+	month = may,
+	year = {2002},
+	keywords = {Electrodes, Ag−AgCl, Biopotential recordings, Electrode noise, Electrolyte-skin interface, Metal-electrolyte interface},
+	pages = {332--338},
+	file = {Full Text PDF:/home/mnk/Zotero/storage/EDZVY2AQ/Huigen et al. - 2002 - Investigation into the origin of the noise of surface electrodes.pdf:application/pdf},
+}
+
  
 @book{hari_meg-eeg_2017,
 	address = {Cary},
@@ -490,3 +510,59 @@ The proposed ASRDBSCAN and ASRGEV methods handle motion-related artifacts better
     url = "https://asma.kglmeridian.com/view/journals/aeme/36/9/article-p855.xml"
 }
 
+
+@article{de_cheveigne_robust_2018,
+	title = {Robust detrending, rereferencing, outlier detection, and inpainting for multichannel data},
+	volume = {172},
+	issn = {1053-8119},
+	url = {https://www.sciencedirect.com/science/article/pii/S1053811918300351},
+	doi = {10.1016/j.neuroimage.2018.01.035},
+	abstract = {Electroencephalography (EEG), magnetoencephalography (MEG) and related techniques are prone to glitches, slow drift, steps, etc., that contaminate the data and interfere with the analysis and interpretation. These artifacts are usually addressed in a preprocessing phase that attempts to remove them or minimize their impact. This paper offers a set of useful techniques for this purpose: robust detrending, robust rereferencing, outlier detection, data interpolation (inpainting), step removal, and filter ringing artifact removal. These techniques provide a less wasteful alternative to discarding corrupted trials or channels, and they are relatively immune to artifacts that disrupt alternative approaches such as filtering. Robust detrending allows slow drifts and common mode signals to be factored out while avoiding the deleterious effects of glitches. Robust rereferencing reduces the impact of artifacts on the reference. Inpainting allows corrupt data to be interpolated from intact parts based on the correlation structure estimated over the intact parts. Outlier detection allows the corrupt parts to be identified. Step removal fixes the high-amplitude flux jump artifacts that are common with some MEG systems. Ringing removal allows the ringing response of the antialiasing filter to glitches (steps, pulses) to be suppressed. The performance of the methods is illustrated and evaluated using synthetic data and data from real EEG and MEG systems. These methods, which are mainly automatic and require little tuning, can greatly improve the quality of the data.},
+	urldate = {2025-12-02},
+	journal = {NeuroImage},
+	author = {De Cheveigné, Alain and Arzounian, Dorothée},
+	month = may,
+	year = {2018},
+	keywords = {Artifact, CCA, CSP, Detrending, DSS, ECoG, EEG, ICA, LFP, MEG, Robust statistics, Sensor noise, SNS, Weighted regression},
+	pages = {903--912},
+	file = {Full Text:/home/mnk/Zotero/storage/4B56RR5K/de Cheveigné and Arzounian - 2018 - Robust detrending, rereferencing, outlier detection, and inpainting for multichannel data.pdf:application/pdf;Full Text:/home/mnk/Zotero/storage/6KMGQ7F3/de Cheveigné and Arzounian - 2018 - Robust detrending, rereferencing, outlier detection, and inpainting for multichannel data.pdf:application/pdf;ScienceDirect Snapshot:/home/mnk/Zotero/storage/GJVZYFF3/S1053811918300351.html:text/html},
+}
+
+@article{lins_ocular_1993-1,
+	title = {Ocular artifacts in {EEG} and event-related potentials {I}: {Scalp} topography},
+	volume = {6},
+	copyright = {http://www.springer.com/tdm},
+	issn = {0896-0267, 1573-6792},
+	shorttitle = {Ocular artifacts in {EEG} and event-related potentials {I}},
+	url = {http://link.springer.com/10.1007/BF01234127},
+	doi = {10.1007/BF01234127},
+	language = {en},
+	number = {1},
+	urldate = {2024-10-30},
+	journal = {Brain Topography},
+	author = {Lins, Otavio G. and Picton, Terence W. and Berg, Patrick and Scherg, Michael},
+	month = sep,
+	year = {1993},
+	pages = {51--63},
+	file = {PDF:/home/mnk/Zotero/storage/NUE7KCEA/Lins et al. - 1993 - Ocular artifacts in EEG and event-related potentials I Scalp topography.pdf:application/pdf},
+}
+
+@article{kappenman_effects_2010,
+	title = {The effects of electrode impedance on data quality and statistical significance in {ERP} recordings},
+	volume = {47},
+	copyright = {Copyright © 2010 Society for Psychophysiological Research},
+	issn = {1469-8986},
+	url = {https://onlinelibrary.wiley.com/doi/abs/10.1111/j.1469-8986.2010.01009.x},
+	doi = {10.1111/j.1469-8986.2010.01009.x},
+	abstract = {To determine whether data quality is meaningfully reduced by high electrode impedance, EEG was recorded simultaneously from low- and high-impedance electrode sites during an oddball task. Low-frequency noise was found to be increased at high-impedance sites relative to low-impedance sites, especially when the recording environment was warm and humid. The increased noise at the high-impedance sites caused an increase in the number of trials needed to obtain statistical significance in analyses of P3 amplitude, but this could be partially mitigated by high-pass filtering and artifact rejection. High electrode impedance did not reduce statistical power for the N1 wave unless the recording environment was warm and humid. Thus, high electrode impedance may increase noise and decrease statistical power under some conditions, but these effects can be reduced by using a cool and dry recording environment and appropriate signal processing methods.},
+	language = {en},
+	number = {5},
+	urldate = {2025-09-30},
+	journal = {Psychophysiology},
+	author = {Kappenman, Emily S. and Luck, Steven J.},
+	year = {2010},
+	note = {\_eprint: https://onlinelibrary.wiley.com/doi/pdf/10.1111/j.1469-8986.2010.01009.x},
+	keywords = {Electrode impedance, Signal-to-noise ratio, Skin potentials},
+	pages = {888--904},
+	file = {Full Text PDF:/home/mnk/Zotero/storage/CZ2DECJ6/Kappenman and Luck - 2010 - The effects of electrode impedance on data quality and statistical significance in ERP recordings.pdf:application/pdf;Snapshot:/home/mnk/Zotero/storage/59CASGI8/j.1469-8986.2010.01009.html:text/html},
+}
