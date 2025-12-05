@@ -4,9 +4,9 @@
 
 
 // Fill me with the Abstract
-#let abstract = "The data recorded in a study using electroencephalography (EEG) also contains unwanted signals, called 'artifacts', which must be removed in a preprocessing step before analyzing the data. The tools and methods developed for this purpose can be tested by means of applying the preprocessing to a dataset and comparing the result with the expected output. In order to avoid the disadvantages associated with using real data from recordings, researchers often simulate data containing known EEG and artifact components.
+#let abstract = "The data recorded in a study using electroencephalography (EEG) also contains unwanted signals, called 'artifacts', which must be removed in a preprocessing step before the data can be analyzed. The tools and methods developed for this purpose can be tested by means of applying the preprocessing to a dataset and comparing the result with the expected output. However, there is a lack of suitable datasets, and researchers are often missing knowledge of the ground truth or have specific ground truth requirements that the real study may not fulfil. Thus, using real recorded data for this purpose is not always ideal. Instead, researchers often decide to simulate data containing EEG and artifact components that correspond to their requirements.
 
-However, current tools for artifact simulation do not completely eliminate the dependency on real datasets, are less flexible and difficult to reproduce. This thesis describes the first steps towards modelling these artifacts based on their origin and properties and simulating them in a flexible, extensible and reproducible manner.
+Current tools and techniques for artifact simulation still depend on real datasets, are difficult to reproduce and are often based in proprietary software. This thesis describes the first steps towards modelling these artifacts based on their origin and properties and simulating them in an extensible and reproducible manner, keeping the simulation method open-source. In particular, the artifacts selected for simulation include the eye movement artifact, power line noise and slow drifts. The implementation of this simulation is designed to be compatible with and eventually integrated into an existing open-source EEG simulation library, UnfoldSim.jl.
   "
 
 // Fill me with acknowledgments
@@ -61,7 +61,7 @@ I also thank Nils Harmening for the correspondence on the HArtMuT model and for 
 
 #show: thesis.with(
   author: "Maanik Marathe",
-  title: "EEG Artifact Simulation: an open-source implementation for a selection of artifacts",
+  title: "EEG Artifact Simulation: an open-source implementation for eye movements, power line noise, and drifts",
   degree: "M.Sc.",
   faculty: "Faculty of Electrical Engineering and Computer Science",
   department: "Computational Cognitive Science",
@@ -93,7 +93,7 @@ I also thank Nils Harmening for the correspondence on the HArtMuT model and for 
   table-index: false,
   listing-index: false,
   abbreviations: abbreviations,
-  date: datetime(year: 2025, month: 12, day: 4),
+  date: datetime(year: 2025, month: 12, day: 5),
   bibliography: bibliography("refs.bib", title: "Bibliography", style: "american-psychological-association"),
   declaration: declaration
 )
@@ -123,13 +123,11 @@ I also thank Nils Harmening for the correspondence on the HArtMuT model and for 
 // Main Content starts here
 = Introduction <chp:introduction>
 
-#ilt[rephrase]
-
 In bioelectrical signal research, @eeg is a method of recording the electrical activity of the brain via a set of electrodes (or sensors), usually placed on the scalp and/or the facial skin of the participant. During the EEG recording, each of the electrodes measures the electrical potential at its respective location, with one electrode being designated as the reference electrode. The recorded value of the EEG at a given electrode is a measure of the potential difference between that electrode and the reference electrode @hari_meg-eeg_2017. 
 
 The time-series data thus gathered is later analyzed in order to understand more about the inner working of the brain. Of interest to researchers are the electrical potentials arising from brain activity; however, the raw recorded data also contains unwanted components, called "artifacts". These artifact potentials partially or completely obscure the brain-related signals, since they often have a similar or much larger magnitude compared to the latter. 
 
-Thus, the data must be cleaned of artifacts before it can be analyzed. For this preprocessing, a variety of techniques and tools have been developed. These are tested on real or synthetic data, and in the end used in order to process real data for the purpose of answering specific research questions.
+Thus, the data must be cleaned of artifacts before it can be analyzed. For this preprocessing, a variety of techniques and tools have been developed. These are then used in order to process real data for the purpose of answering specific research questions. In order to test these techniques, researchers often simulate datasets containing the artifacts of interest for the particular technique in question. This thesis focuses on the modelling and simulation of eye movements, power line noise and drift artifacts in EEG in order to provide these researchers with a more flexible and reproducible method of EEG artifact simulation.
 
 The following subsections discuss EEG artifacts and their simulation in more detail, along with laying out the aim and scope of this thesis.
 
@@ -146,8 +144,6 @@ To a certain extent, the experimental setup and procedure at the time of EEG rec
 However, some artifacts (like eye movement, blink artifacts, or drifts) cannot be easily avoided at the source. These must be then removed from the raw data via preprocessing, before the cleaned data is then ready for analysis. This is often done by means of special algorithms and processing tools implemented using computer code.
 
 == Motivation for simulation in EEG data processing
-
-#ilt[rephrase]
 
 Modern EEG research often involves the use of software to process recorded data, for example to detect artifacts or to perform artifact correction on the detected artifacts. Popular software packages for EEG data processing include EEGLab @delorme_eeglab_2004, autoreject @jas:hal-01313458, and MNE @larson_mne-python_2024. Individual researchers usually also write their own code to help perform further analysis, either independently of such packages or by building on the functions provided therein.
 
@@ -176,22 +172,23 @@ However, designing and carrying out such a study can be expensive and time-consu
 Further, even in a purpose-built study, the participant may deviate from the instructions, or the ground-truth requirements may be too complex to easily communicate to the participant. 
 
 
-Simulating EEG data for this purpose then becomes a useful option. Along with reducing the effort that would come along with conducting a full experiment, it also provides the researcher with more control over the artifacts present in the test dataset, in terms of characteristics like variety, frequency of occurrence, distribution over time and space, and so on. 
+Simulating EEG data and artifacts for this purpose then becomes a useful option. Along with reducing the effort that would come along with conducting a full experiment, it also provides the researcher with more control over the artifacts present in the test dataset, in terms of characteristics like variety, frequency of occurrence, distribution over time and space, and so on. 
 
-Some researchers choose to themselves simulate datasets, with artifacts placed at known times or with known properties. This adds extra work and leads to a lack of standardization and replicability in synthetic data creation. Others prefer to use an off-the-shelf tool developed specifically for simulation, and tailor it to their needs. Most of the artifact simulation code currently available is primarily based in MATLAB, which is closed-source and therefore less accessible. 
-Thus, there is a need for a single method for artifact simulation in a standardized and accessible way that is also flexible enough to be customized if so required. 
+== Previous work on EEG and artifact simulation <prevwork>
+Synthetic data creation has been a part of several previous studies. 
+One possibility for creating a synthetic dataset is to create a physical simulator and to record the data with sensors as in usual EEG studies. #pc[@Yu_Hairston_2021] created the "Open EEG Phantom", an open-source project to allow researchers to create their own dummy head for EEG recording. This consists of a phantom head made of materials of varying conductivities to mimic the real human head. The phantom head contains several antennae placed at specific locations, and custom electrical signals are broadcast into space through the head via these antennae. This can then be used to simulate EEG and various artifacts, depending on the goal of the current study. For example, #pc[@s23198214] developed a novel algorithm to remove EEG artifacts. In order to validate their algorithm, they created test data by building and using a model head based on the Open EEG Phantom, and broadcasting EEG along with artifacts from eye movements, neck and facial muscles, and walking movements, into the model head. For some of these signals, they recorded data specifically for this study, and for others they extracted the EEG and artifact signals from an existing dataset, and broadcast those into the dummy head. 
 
-#ilt[rephrase the last paragraph]
+It is also possible to simulate the data entirely in software. For this purpose, EEG simulation packages provide general support to simulate EEG data from brain sources and to add different kinds of random noise to the data @krol_sereega_2018 @BARZEGARAN2019108377 @larson_mne-python_2024 @Schepers2025. 
 
-// Although some work has been done in this area (see @prevwork-simulation), the methods are still not standardized and are dependent on the individual researcher's skills and judgement, making it difficult to exactly reproduce methods used by another researcher.  
+When creating an artifact-contaminated dataset for a particular study, some researchers choose to create a semi-simulated dataset by obtaining artifact-free recordings (usually by cleaning a regular recording) and then contaminating this data by taking samples of recorded artifacts and projecting them to the scalp electrodes @KLADOS20161004 @couchman2024simulatedeyeblinkartifactremoval @duToit_Venter_van_den_Heever_2021 @anzolinArticle. #pc[@romero_comparative_2008] created a simulated EEG-EOG dataset from a real recorded dataset by calculating a weighted sum of the EEG potentials of certain randomly chosen subjects and the EOG potentials of different randomly chosen subjects. 
+
+Other methods are also possible: #pc[@Mutanen] modelled muscle artifacts from an existing dataset and used their model to simulate further muscle artifacts, and similarly #pc[@KIM2025110465] simulated eye blinks and two muscle artifacts that they identified from empirical data. #pc[@barbara_monopolar_2023] defined and extended their own battery model of the eye to simulate eye movement artifacts. #pc[@leske_reducing_2019] simulated power line noise with fluctuating amplitude and varied on- and offsets for their combined MEG/EEG study.
+
+However, most of the methods above still rely on real datasets to some extent. Furthermore, the simulation itself is not carried out in a standardized way, instead being done either manually by the researcher or via custom scripts. Most of the artifact simulation code currently available is primarily based in MATLAB, which is proprietary software and therefore less accessible for future researchers, and the custom scripts themselves may not be made publicly available by their authors. The individual researcher's judgement also plays a large role in the output of the simulation, and the reasons behind the choices they make are not always documented. Under these conditions, it is difficult to replicate the results of the original researchers. Finally, there is a large amount of effort required to create a custom model and simulation process based on the requirements of each individual study.
+
+Thus, there is a need for a single method for artifact simulation in a standardized and accessible way that is also flexible enough to be customized if so required.
 
 
-#ilt[transition??]
-
-
-// 
-
-// #show link: underline
 
 == Aim and scope of this thesis
 
@@ -213,7 +210,6 @@ The following research questions were formulated in order to better guide the wo
 
 == Eye Movement artifact
 
-#ilt[references] 
 
 Eye-related EEG artefacts arise mainly from eyeball movements, eye muscle activation, and eyelid movements. This section primarily deals with the artefact due to eyeball movement. 
  
@@ -239,12 +235,9 @@ It is also possible to model the potential differences on the retina and cornea 
 The @crd and ensemble models have been explored more in detail in a previous work @mmar-researchproject, and the implementation from that work has been used and built upon in this thesis for the simulation of eye movement artifacts.
 
 
-// ; eye muscle artefacts are generated due to activation of the muscles used in order to move the eyes. Eyelid movement can contribute to multiple artefacts: according to @iwasaki_effects_2005, the eyelids move along with eye movements, and greatly influence the frontal EEG observed during vertical eye movements. #pc[@matsuo_electrical_1975] explain blink artefacts as resulting from the interaction between the eyelid and the charged surface of the cornea at the front of the eyeball, where the eyelid conducts the positive charges from the cornea towards the frontal electrodes (also known as the "sliding electrode" effect).
-
 
 Along with the movement of the eyeball itself, other factors also affect the EEG artifacts arising from eye movements. According to #pc[@iwasaki_effects_2005], the eyelids move along with eye movements, and the effect is visible in the frontal EEG observed during vertical eye movements. #pc[@matsuo_electrical_1975] discuss a  possible explanation: when the eyelid makes contact with the charged surface of the cornea, it conducts the positive charges away from the eyeball towards the frontal electrodes. This is also known as the “sliding electrode” effect and has also been used to explain blink artifacts, which also involve interaction between the eyelid and the charged eyeball @matsuo_electrical_1975 @lins_ocular_1993-1.
 
-// . explain blink artefacts as resulting from the interaction between the eyelid and the charged surface of the cornea at the front of the eyeball, where the eyelid conducts the positive charges from the cornea towards the frontal electrodes
 
 == Power Line Noise
 
@@ -254,9 +247,7 @@ A current carrying conductor creates an electric field around it, and when the d
 
 Since the EEG is a measure of electrical potential, it also measures the changes in electrical potential that occur as a result of the alternating direction of the current in the power supply. The alternating current may also induce effects in equipment around the subject, which in turn can affect the measured EEG. This means that in an EEG recording there is also an unwanted component that results from the power supply, and this component is known as power line noise. 
 
-The exact mechanisms by which the power line noise enters the EEG system is not yet definitely known #ilt[ref]. The magnitude of the artifact can be reduced by measures like electrically shielding the experimental room or avoiding the use of AC power during the recording. However, it is not entirely possible to avoid recording this artifact. Thus, the presence of this noise is widely known and accepted in EEG studies  @de_cheveigne_zapline_2020 and efforts are concentrated rather on reducing the magnitude of this noise where possible in the recording setup, along with using post-processing methods to remove the artifact after the recording is complete.
-
-// #ilt("previous work: removing pln artifacts?")
+The exact mechanisms by which the power line noise enters the EEG system are not yet definitely known @de_cheveigne_zapline_2020. The magnitude of the artifact can be reduced by measures like electrically shielding the experimental room or avoiding the use of AC power during the recording. However, it is not entirely possible to avoid recording this artifact. Thus, the presence of this noise is widely known and accepted in EEG studies, and efforts are concentrated rather on reducing the magnitude of this noise where possible in the recording setup, along with using post-processing methods to remove the artifact after the recording is complete.
 
 == Drift artifact
 
@@ -279,71 +270,57 @@ From a particular gaze direction, when the eye rotates horizontally to one side,
 
 These observations correspond to the effect one would expect from the corneo-retinal potential described in the literature. 
 
-#ilt[plots of EM]
-
 
 === Power line noise
 
 The power line noise can be seen with the naked eye in the raw EEG as regular oscillations at much higher frequencies than is normally expected in an EEG recording. When observing the power spectral density of the data, sharp peaks can be seen at the power line frequency and its multiples. 
 The artifact may not be uniformly distributed across the scalp electrodes @de_cheveigne_zapline_2020; this may be a result of different mechanisms of transmission of the power line noise into the EEG system and the relative positioning of different electrodes with respect to the power lines themselves.
 
-#ilt[plots]
 
 === Drifts
 
 Drifts manifest as a slow increase or decrease over time in the baseline level around which the measured EEG signal appears. When extracted from the data, it looks similar to the figure below.
 
-#ilt[plot of drifts]
-
 The drift artifact differs across channels, although it may be somewhat related in electrodes that are closer to each other @de_cheveigne_robust_2018. It also changes over time: #pc[@huigen_investigation_2002] found that the noise in wet-gel electrodes reduces over time and noted that applying the electrodes some time before the start of the recording would be an advantage where low noise levels are desired. 
 
 
 
-== Previous work on EEG data simulation <prevwork-simulation>
-
-Synthetic data creation has been a part of several previous studies. This section provides an overview of previous work involving the simulation of synthetic EEG data including artifacts. 
-
-One possibility for creating a synthetic dataset is to create a physical simulator and to record the data with sensors as in usual EEG studies. #pc[@Yu_Hairston_2021] created the "Open EEG Phantom", an open-source project to allow researchers to create their own dummy head for EEG recording. This consists of a phantom head made of materials of varying conductivities to mimic the real human head. The phantom head contains several antennae placed at specific locations, and custom electrical signals are broadcast into space through the head via these antennae. This can then be used to simulate EEG and various artifacts, depending on the goal of the current study. For example, #pc[@s23198214] developed a novel algorithm to remove EEG artifacts. In order to validate their algorithm, they created test data by building and using a model head based on the Open EEG Phantom. For some of the EEG and artifact signals, they recorded data specifically for this study, and for others they extracted the EEG and artifact signals from an existing dataset, and broadcast those into the dummy head. 
-
-It is also possible to simulate the data entirely in software. For this purpose, EEG simulation packages provide general support to simulate EEG data from brain sources and to add different kinds of random noise to the data @krol_sereega_2018 @BARZEGARAN2019108377 @larson_mne-python_2024 @Schepers2025. However, 
-
-When creating a dataset for a particular study, some researchers choose to create a semi-simulated dataset by obtaining artifact-free recordings (usually by cleaning a regular recording) and then contaminating this data by taking samples of recorded artifacts and projecting them to the scalp electrodes @KLADOS20161004 @couchman2024simulatedeyeblinkartifactremoval @duToit_Venter_van_den_Heever_2021 @anzolinArticle. #pc[@romero_comparative_2008] created a simulated EEG-EOG dataset from a real recorded dataset by calculating a weighted sum of the EEG potentials of certain randomly chosen subjects and the EOG potentials of different randomly chosen subjects. 
-
-Other methods are also possible: #pc[@Mutanen] modelled muscle artifacts from an existing dataset and used their model to simulate further muscle artifacts, and similarly #pc[@KIM2025110465] simulated eye blinks and two muscle artifacts that they identified from empirical data. #pc[@barbara_monopolar_2023] defined and extended their own battery model of the eye to simulate eye movement artifacts. #pc[@leske_reducing_2019] simulated power line noise with fluctuating amplitude and varied on- and offsets for their combined MEG/EEG study.
-
 #pagebreak()
 = Simulation implementation
 
-This chapter describes in more detail the artifact simulation methods developed for this thesis.
+As described in @prevwork, flexible and open-source methods for EEG and artifact simulation are much sought after, and software packages that simulate EEG (brain) data have been actively developed in recent years. One of these packages is UnfoldSim.jl @Schepers2025, which allows the user to specify an experiment design and simulate continuous EEG signals along with additional random noise. The package is also designed to be extensible, allowing the user to define their own custom types and operate flexibly with existing code. 
 
-The programming language chosen for the implementation is Julia and the existing simulation package that is extended is UnfoldSim.jl @Schepers2025. The code supporting this written thesis is hosted on the Internet in a repository on the developer platform 'GitHub' and can be located by visiting #underline[https://github.com/s-ccs/2025_MSc_EEG_artifacts_simulation].
+Therefore, for this thesis, UnfoldSim.jl was chosen as a base package on which to build the further artifact simulation methods. Since UnfoldSim is written in Julia, this thesis follows the same. The artifact simulation code is designed from the start of development to be compatible with the UnfoldSim package; for the sake of convenience, this 'extended' version of UnfoldSim shall be called 'UnfoldSimArtifacts'. However, it is planned to eventually integrate the artifact simulation into the UnfoldSim package itself: a fork of the package has been created and the simulation code has been incorporated directly into the structure of UnfoldSim. 
 
-UnfoldSim.jl provides functionality to simulate time-series EEG data along with random noise. The code for this thesis is intended to be compatible with the UnfoldSim package, in effect extending the package. For the sake of convenience, this 'extended' version of UnfoldSim shall be called 'UnfoldSimArtifacts'. 
+The code and other artifacts supporting this written thesis are hosted on the Internet in a repository on the developer platform 'GitHub' and can be located by visiting #underline[https://github.com/s-ccs/2025_MSc_EEG_artifacts_simulation].
+
+
 
 == Overview of simulation interfaces
-The interfaces for artifact simulation have been designed to match the conventions and structure of UnfoldSim.jl, such that minimal changes would be required to add artifact simulation to an existing UnfoldSim simulation code snippet. 
+The interfaces for artifact simulation have been designed to match the conventions and structure of UnfoldSim.jl, such that minimal changes would be required to add artifact simulation to an existing UnfoldSim simulation code. 
 
+The flow of the artifact-inclusive simulation is as follows: The basic simulation ingredients (experimental design, component, onsets, and noise) are defined as usual for UnfoldSim. In addition, the desired artifacts are defined, using the interfaces provided by UnfoldSimArtifacts. Next, the `simulate` function is called. 
+Within the `simulate` function, the EEG is first simulated without any noise. Then, each artifact in turn is simulated; here, noise is also considered to be an artifact. Finally, the results of all the simulations are added together to give the simulated artifact-contaminated EEG data.
 
-#ilt[graphic: EEG+Noise+Artifacts = UnfoldSimArtifacts simulation]
-
-
-#ilt[graphic: simulation flow. Simulate EEG -> generate controlsignal -> simulate_continuoussignal -> add -> output]
+Some details about the implementation follow in the next few subsections.
 
 === AbstractContinuousSignal
 
-Keeping with the UnfoldSim convention of providing high-level abstract types with a few predefined concrete types, UnfoldSimArtifacts contains a new abstract type `AbstractContinuousSignal`, and for each of the three selected artifacts (eye movements, power line noise, drifts), a corresponding concrete type has been created. The user can define their requirements for the artifact by setting values for the fields in these concrete types. For example, the concrete type `PowerLineNoise` has a field `base_freq` to define the base frequency of the power supply. Similarly, each concrete type has its own set of fields that are required to simulate that artifact.
+Keeping with the UnfoldSim convention of providing high-level abstract types with a few predefined concrete types, UnfoldSimArtifacts defines a new abstract type `AbstractContinuousSignal`, and for each of the three selected artifacts (eye movements, power line noise, drifts), a corresponding concrete subtype has been created. The user can define their requirements for the artifact by setting values for the fields in these concrete types. For example, the concrete type `PowerLineNoise` has a field `base_freq` to define the base frequency of the power supply. Similarly, each concrete type has its own set of fields that are required to simulate that artifact.
 
 === Control Signal
 Each artifact defined by a concrete subtype of `AbstractContinuousSignal` has a field `controlsignal`. This control signal is the means via which the user can control the simulated continuous signal i.e. artifact. 
 
-This control signal can be defined at different levels of abstraction. For each concrete artifact type, there is one basic kind of `controlsignal` that is internally used by UnfoldSimArtifacts when simulating the artifact. The user can choose to provide their control signal at this level of abstraction, or they can choose to provide a control signal at a higher level which will then be converted internally to the lowest-level control signal. This offers the user a greater degree of flexibility when defining their artifact.
+For each concrete artifact type, there is one basic kind of `controlsignal` that is internally used by UnfoldSimArtifacts when simulating the artifact. The user can choose to provide their control signal in the same form. However, since the internally used controlsignal is the control signal in its most detailed form, it may be inconvenient for the user to define their specifications at this level of detail. Thus, UnfoldSimArtifacts also provides other interfaces at a higher level i.e. closer to the format that the user can easily use. If a user chooses to provide their controlsignal in one of these higher-level forms, it will then be converted internally to the lowest-level control signal. This offers the user a greater degree of flexibility when defining their artifact.
 
-For example, for eye movement artifact simulation, the internally used control signal is a set of vectors describing the direction of eye gaze in three-dimensional space at each time point in the simulation. However, the user may wish to define their control signal in terms of gaze angles at each time point, or at an even higher level they may wish  to simply provide a set of fixations and onsets and allow UnfoldSimArtifacts to internally convert these inputs to the gaze direction vectors. This is made possible using the `generate_controlsignal` function.
+For example, for eye movement artifact simulation, the internally used control signal is a set of vectors describing the direction of eye gaze in three-dimensional space at each time point in the simulation. However, the user may wish to define their control signal in terms of gaze angles at each time point, they may want to define eye gaze points on a screen instead of specifying gaze directions, or at an even higher level they may wish to simply provide a set of fixations and onsets and allow UnfoldSimArtifacts to generate the eye movements connecting these. @fig:controlsignal shows this structure in a graphical manner.
 
-#figure(caption: "Control signal at different levels of abstraction.")[
+#figure(caption: "Control signal at different levels of detail")[
   #image("template/assets/fig_levels of abstraction.png", width: 100%)
 ] <fig:controlsignal>
-#ilt[edit figure to make it clearer]
+
+The conversion from the high-level control signal to the low-level internally used form is made possible using the `generate_controlsignal` function, which is defined for various types of control signal.
+
 
 === Generating the control signal
 
@@ -357,19 +334,28 @@ For example, for eye movement artifact simulation, the internally used control s
 The function `generate_controlsignal` can have multiple methods, depending on the type of control signal passed in by the user. However, the output of `generate_controlsignal` will always be in the base form required for simulating the respective artifact. For example, for power line noise this could be a matrix of weights to be applied for each time point and channel, or for an eye movement artifact it could be a matrix of eye gaze coordinates.  
 
 
-== Eye Movement Simulation
-The eyeballs have been modelled using the @hartmut model and the CRD and ensemble simulation models @mmar-researchproject.
+== Artifact simulation
+
+=== Eye Movement Simulation
+
+The eyeballs have been modelled using the @hartmut model and the CRD and ensemble simulation models @mmar-researchproject. The concrete type for eye movements is constructed as below:
+
+`
+@with_kw struct EyeMovement{T} <: AbstractContinuousSignal
+    controlsignal::T
+    headmodel
+    eye_model::String = "crd"
+end
+`
 
 At the lowest level of simulation, the eye movement is controlled using the instantaneous *gaze direction vector*, a vector pointing from the center of the eye towards the current gaze target at that time point. This vector is described in three dimensions in the same coordinate frame as the head model.
 
-Another possible interface would be to allow the user to specify the eye position in head-referenced angle (*HREF*) coordinates #ilt[explain href], or place the simulated participant in front of a virtual screen and specify the screen coordinates where the participant looked instead of providing the gaze direction. 
+Another possible interface would be to allow the user to specify the eye position in head-referenced angle coordinates, or place the simulated participant in front of a virtual screen and specify the screen coordinates where the participant looked instead of providing the gaze direction. 
 
-Based on the type of control signal given by the user, it is converted if required into gaze direction vectors. For each gaze direction, the lead field (i.e. the potential measured at the scalp electrodes when the eye source dipoles are turned on) is calculated, and this lead field calculated over all electrodes and at multiple time points gives us the EEG eye movement artifact matrix.  
+Based on the type of control signal given by the user, it is converted if required into gaze direction vectors. For each gaze direction, the lead field (i.e. the potential measured at the scalp electrodes when the eye source dipoles are turned on) is calculated, and this lead field calculated for all electrodes and at multiple time points gives us the EEG eye movement artifact matrix.  
 
 
-#ilt[code example]
-
-== Power Line Noise
+=== Power Line Noise
 
 `@with_kw struct PowerLineNoise <: AbstractContinuousSignal
     controlsignal = nothing
@@ -380,31 +366,59 @@ Based on the type of control signal given by the user, it is converted if requir
 end
 `
 
-The properties of the power line noise can be specified as shown in the code snippet: base frequency, harmonics required, and the sampling rate of the power line noise. A set of relative weights for the harmonics among themselves is specified as well. A `controlsignal` further specifies the weights to be applied to this noise type at each channel and time point just before adding the noise to the rest of the simulated signal.  
+The properties of the power line noise can be specified as shown in the code snippet: base frequency, harmonics required (i.e., additional sinusoidal waves having their frequency as multiples of the actual power line frequency), and the sampling rate of the power line noise. The user can also specify a set of weights for the harmonics to define the contribution of each harmonic component to the overall power line noise; for example, in order to give one harmonic twice the magnitude of the other, the weights for those harmonics can be defined as 2 and 1 respectively. By default, all harmonics are weighted equally in magnitude. 
+
+An optional `controlsignal` further specifies the weights to be applied to this noise type at each channel and time point before adding the noise to the rest of the simulated signal. If no controlsignal is specified by the user, it is generated to be a matrix of ones, i.e. all channels have the exact same power line noise added to them and the magnitude of this power line noise does not change over time.
 
 The noise is first simulated for a single channel using the given base frequency and harmonics: sinusoidal waves having the base frequency and harmonic frequencies are generated and weighted according to the between-harmonics weights `weights_harmonics`. The single-channel artifact thus created is then weighted according to `controlsignal` and returned in order to be added to the remaining simulation results at the appropriate stage in the process. 
 
-== Drift
+=== Drift
+
+`
+@with_kw struct DriftNoise <: AbstractContinuousSignal
+    ar::ARDriftNoise = ARDriftNoise(σ=1)
+    linear::LinearDriftNoise = LinearDriftNoise()
+    dc::DCDriftNoise = DCDriftNoise()
+end
+`
 
 The type `DriftNoise` contains three fields, each sub-types of drift noise: `DCDriftNoise` (changing DC offset), `LinearDriftNoise` (options for simulating a linear drift), and `ARDriftNoise` (autoregressive drift noise). Each of these types have their own fields where the user can specify the parameters for that noise type, and a corresponding method in the simulation steps. 
 
-Here as well, a single channel is simulated at a time, like with power line noise; however, in contrast to the power line noise, for drift noise a new simulation is done for each channel. 
+Here as well, a single channel is simulated at a time, like with power line noise; however, in contrast to the power line noise, the drift noise is simulated anew for each channel. This is because the drift in individual channels is not necessarily related to that of other channels, whereas power line noise is essentially the same underlying artifact that may manifest with differing magnitudes in different channels. 
 
-When the user simulates directly with the type `DriftNoise`, by default all these three types of noise will be simulated. However, the user can also choose to simulate only one of these types of drift noise by using the appropriate concrete type.
+When the user simulates directly with the type `DriftNoise`, by default all these three types of noise will be simulated and added together. However, the user can also choose to simulate only one of these types of drift noise by using the appropriate concrete type. They may also choose to extend the DriftNoise artifact with their own implementation of additional types. 
 
-== AbstractNoise
 
-The generic noise component of simulated EEG is implemented in UnfoldSim using the abstract type `AbstractNoise` and its concrete subtypes. Noise is similar to the `AbstractContinuousSignal` in the sense that the simulation of the noise depends on the simulation of the EEG and other artifacts in order to know the number of samples or time points for which the noise will be required. In order to maintain a unified simulation flow in UnfoldSimArtifacts, when calling the `simulate()` function, the non-brain, non-artifact noise is treated as yet another artifact, and the simulation flow inside `simulate()` also takes into account this `AbstractNoise`.  
-
-== User-defined artifact
+=== User-defined artifact
 
 The simulation in UnfoldSimArtifacts is designed to be as flexible as possible while still providing a unified structure and flow to simulate different artifacts. To this end, a special type is defined, called `UserDefinedContinuousSignal`. 
 
 This type has a similar structure to the predefined artifacts provided, but is not bound to any one specific type of artifact. An advantage of this is that the user can choose to simulate their own artifacts separately or even reuse an artifact extracted from real data, similar to the workflows currently in use. However, the common simulation flow still remains and the addition of the user-defined artifact can be unified with the simulations provided in the package, resulting in a more standardized simulation overall.
 
-#pagebreak()
-= Simulation Examples
+// #pagebreak()
+== Simulation Example
 
+The simulation of these artifacts can be demonstrated in a single simulation code snippet, as follows: 
+
+`
+simulate(
+  MersenneTwister(1), # random number generator 
+  design, mc, onset, # experimental design
+  [noise; # AbstractNoise
+  EyeMovement(HREFCoordinates(href_trajectory), # control signal
+              eyemodel, # forward model for the eye movement simulation
+              "ensemble"); 
+  PowerLineNoise();
+  DriftNoise()]
+);
+
+`
+
+First, as before with UnfoldSim, an EEG experimental design is defined, along with the desired component, onsets, and noise. 
+
+In addition, an eye movement artifact is defined: the movement is controlled via head-referenced eye gaze trajectories contained in `href_trajectory`; a forward model is provided using `eyemodel`, and it is specified that the ensemble model should be used to simulate the eye movement. Power line noise and drift noise are also added to the simulation, making use of the inbuilt default parameters rather than having those values be specified by the user.
+
+The documentation in the forked version of UnfoldSim, referenced in the GitHub repository for this project, contains a guide explaining this simulation in more depth.
 
 
 #pagebreak()
@@ -414,57 +428,76 @@ This type has a similar structure to the predefined artifacts provided, but is n
 
 == Limitations
 
-- Weightage/normalisation problem - where to apply weights and whether/how to expose these options to the user
 
-=== Eye model
-  - skin conductivity for entire eyeball - "closed-eyelid" state
-  - eyelid movement accompanying  not simulated
-  - 
+The goal of the thesis was to develop a structure and some basic simulation implementations of the selected artifacts. In this light, these first implementations for the artifact simulation are based on simplified models of the artifacts, created with certain assumptions in mind. There is scope to build more complex models by lifting the assumptions made, or to build new models entirely. For example, drift noise has been implemented using an autoregressive model along with simple DC drift and a linear component. In the future, other models can be implemented and the corresponding noise simulation extended to include these new models.
 
-=== Power line noise
-- same noise is added to all electrodes 
-- no inbuilt relative weighting for different electrodes or across time
 
-== Outlook / Future Scope
+There remains an open question about weightage of the different components of the simulated artifact-included EEG signal. When simulating a signal consisting of EEG along with multiple artifacts and noise, each of these components can be weighted differently to yield a simulated dataset contaminated with the artifacts to different degrees. Currently, however, there is no in-built way to describe the desired relative magnitudes of the different components at a high level (e.g., the user cannot simply describe that the power line noise should have half the magnitude of the EEG and the eye movements). The user has control over the weights of the power line noise and drift noise via the `controlsignal` field, however they must pre-calculate the required weights for each channel and time point, per artifact, in order to do so. 
+
+The current implementation does not provide a way to define individual onsets for different artifacts, i.e. all simulated artifacts will begin from the first time point. The control signal provides a way to delay an artifact, by padding it with zeroes (or inserting zeroes at the places where the artifact is not desired). However, this is cumbersome for the user; a better interface would be for example to allow specifying an onset time point or sample for the individual artifacts.  
+
+Some of the further limitations related to specific artifacts are described in individual sections below. 
 
 === Eye movements
-- eyeball fluid conductivity
-- simulating partially open eyelid -> different magnitudes for different parts of the cornea/retina points 
-- simulating movement of eyelid along with  
+The CRD and ensemble eye models used for the eye movement simulation have their own limitations, described in more detail in #pc[@mmar-researchproject]. The eyelid movements accompanying the eye movements are not accounted for in the model, and that the artifacts due to muscle contractions when moving the eye are not simulated. This model, in short, simulates only the movement of the eyeball itself. Additionally, the ensemble model in particular assumes that the magnitude of the retina and cornea dipoles is the same, whereas this is not definitively proven and there is some difference of opinion in the literature on how much the retina and cornea sources at all contribute to the corneo-retinal potential @berg_dipole_1991 @plochl_combining_2012 @hari_meg-eeg_2017.
+
+The current interfaces for specifying details of the desired eye movements are also limited. The user can define the participant's eye gaze relative to the head; however, when working with eye tracking experiments, it may be more useful to define the gaze in terms of coordinates on the screen in front of them. This kind of interface is currently not available.  
 
 === Power line noise
-- different effects on different channels depending on position: simulating the line noise source situated at a position in space relative to the head
+In the current implementation, the power line noise is simulated just once and this same noise is added to all the channels. If the user does not provide their own weights via the `controlsignal` field, the noise will by default be uniform for all the channels. This is not necessarily realistic, as for example one side of the head may be closer to the power source and may therefore experience a greater impact of the power line noise. 
 
-=== Other artifacts
+The ratio of magnitudes of the different harmonics is also constant over the entire simulation, which means that it is not possible to have certain harmonics fade in or out at different points in time, but rather adjust the power line noise magnitude as a whole.
 
-==== Blink
-- eyelid movement
-- bell's phenomenon - plus, different deflections depending on original gazedir?
+Finally, real-world line noise artifacts rarely occur purely at the exact base frequency and its multiples. Instead, the frequency of the artifact signal may drift or deviate slightly from the "true" base frequency of power transmission. The current simulation, however, uses only pure sinusoids at exactly the base and harmonic frequencies specified.  
 
-==== Artifact sources placed outside the head
-eg. heartbeat, pln, etc -> create a head model that includes sources outside the head, then we can modulate those sources the same as we just did with the brain and get the corresponding leadfield.
+=== Drifts
 
-=== Simulation interfaces
+The current simulation on drifts is completely based on mathematical models and by default weights the three different types of drifts equally. More study of real data is required to determine how the magnitudes of the different sub-parts are related and to simulate using models that are perhaps more complex in order to bring the simulation nearer to real-world observed drifts.
 
-(from excel sheet)
+== Outlook and future Scope
 
-- saccade simulation by specifying fixation positions and/or onsets
-- random saccade simulation (least-possible/no parameters provided by user)
-- what to weight where in relation to which other things / at what level of calculation/abstraction
+=== General improvements
+
+There is scope to improve the interfaces for describing the desired relative strengths of the various artifact potentials in the simulated output. For example, the user may specify that the simulated power line noise must appear on only a selection of channels and that certain channels of these should have a stronger effect of the artifact; they may require the overall strength of the power line noise to change over the course of the simulated recording and the maximum magnitude of this power line noise to be only half that of the EEG. 
+
+At several stages in the simulation, default values have been chosen. For example, the strengths of the electrical dipoles in the eye, or the relative weights of the artifacts in the final signal. The current defaults are based on convenience or ease of simulation. In future, more realistic defaults can be determined in a data-driven manner, by analyzing different datasets and setting these default values in the simulation package.
+
+Another possibility is to simulate artifacts as originating at specific spatial locations relative to the head. For this, a head model can be created that provides scalp potential leadfields from sources located even outside the head, similar to the current forward model (e.g. @hartmut, #pc[@harmening_hartmutmodeling_2022]) that provides leadfields from sources within the head and neck. With such a forward model, it becomes possible to virtually place the head and the source for an artifact (e.g. power line noise or the heartbeat) somewhere in space and simulate the strength of the artifact more realistically at different channels according to the spatial relationship between the source and the electrodes.
+
+Additional details on possible future features of the simulation can be found in the file "Improvements" in the project repository on GitHub. 
+
+=== Evaluation of simulated artifacts
+The artifact simulations implemented here can be tested and evaluated in different ways. For example, artifact characteristics can be extracted from a known contaminated dataset and simulated, before comparing the simulated output with the original dataset. The evaluation can be done by applying the same artifact detection or rejection preprocessing steps to both, the real as well as simulated dataset, and the results of this preprocessing compared.
+
+For eye movements, a dataset containing EEG as well as eye tracking can be used as a source dataset. The eye tracking data provides details about the exact eye movements performed, and eye related EEG artifacts can be extracted via preprocessing methods like independent component analysis. The same eye movements as the real dataset can be simulated, before comparing the output with the extracted eye artifact.
+
+For power line noise, a similar comparison can be carried out by extracting the power line noise from a known contaminated dataset, calculating the power spectral density and comparing it with the output of simulating power line noise. Different weights can be specified for different channels, assisted by analyzing the magnitude of the power line noise at different electrodes. Topoplots can be used to visualise these differences between channels and between real and simulated data. A similar comparison can be made for real and simulated drift artifacts.
 
 
-=== Evaluation
+=== Eye movements
 
-- try to simulate the artifacts from a known dataset and compare with the original dataset - e.g. apply same preprocessing steps to both of the above and compare the result
-- PSD for power line noise
-- try giving different weights for different channels
-- topoplots - for eye movements; for test cases where the channels are weighted differently; to visualize drift artifacts happening only on particular electrodes
+Since the model used in this thesis work only simulates the eyeball movement, an avenue for improvement could be to simulate the effect of the half-closed eyelid and its movement that accompanies eye movements. This can be achieved for example by differently weighting the contributions of source points that are in contact with the eyelid, similar to the "sliding electrode" model of eyelid closure discussed previously.
+
+There are also multiple other possible interfaces to define or control the desired eye movement to be simulated. For example, the head of the simulated participant can be placed in front of a virtual screen and the user can specify gaze locations on the screen instead of defining them relative to the head. Similarly, rather than the user needing to define the position of the eye gaze at each individual time point, an interface can be provided for them to specify the gaze position at only certain time points, along with these time points as onsets, and then the simulation may independently generate the trajectories of the eye gaze as the eye moves between these gaze positions. The trajectory can be calculated based on what is known about the properties of natural eye movement, e.g. saccade lengths, typical fixation duration and the saccade main sequence.
+
+Finally, a method can be defined that simply simulates realistic eye movements given a head and screen setup, for the case where the user does not need exact control over the eye movement or gaze position but instead simply wants eye movement artifacts to be present in the simulated dataset. 
+
+=== Power line noise
+As described above, the power line noise simulation can be improved by providing better interfaces to specify weights and potentially by allowing the line noise source to be placed in the same virtual space as the head.  In addition, the implementation can be made more complex by simulating a base frequency that deviates from the specified base frequency, to better match the real-world properties of the artifact.
+
+=== Drift
+
+Similar to the other two artifacts, further work on drift simulation can be done by studying drifts in real data and developing different models based on the results of the study.
+
 
 #pagebreak()
 = Summary
 
-As new tools and techniques are developed for preprocessing and processing EEG data, there will be a continued need for simulation tools that enable researchers to more easily and efficiently generate test data for their analyses. 
+As new tools and techniques are developed for preprocessing and processing EEG data, there will be a continued need for simulation tools that enable researchers to more easily and efficiently generate test data for their analyses. Some researchers choose use an off-the-shelf tool developed specifically for simulation, and tailor it to their needs. While this fulfils the purpose of the specific study, these tools are usually part of proprietary software, and thus less accessible than open-source alternatives. Other researchers choose to themselves simulate datasets, with artifacts placed at known times or with known properties. This, however, adds extra work and leads to a lack of standardization and replicability in synthetic data creation. 
 
-In this thesis, some basic simulations of EEG artifacts were provided as an extension on an existing EEG data simulation package. The implementation has certain limitations and there is scope for further development, as discussed in previous sections. In the future, more work can be done based on the starting point explored here, in the same way that this first artifact simulation built on the work on the EEG simulation package. 
+The need for an open-source, flexible EEG simulation package has been partially filled by packages such as UnfoldSim.jl. However, there is still a lack of such simulation packages for artifacts in EEG. 
 
-#ilt[content]
+In this thesis, some basic simulations of eye movement artifacts, power line noise and drift artifacts in EEG were built as an extension to UnfoldSim.jl (an existing EEG data simulation package). The implementation of the artifact simulation has certain limitations and there is scope for further development, as discussed in previous sections. 
+
+Finally, simulations for EEG artifacts other than the three discussed in this thesis remain to be explored. In the future, more work can be done based on the starting point explored here, in the same way that this first artifact simulation built on the work in UnfoldSim.jl. 
+
