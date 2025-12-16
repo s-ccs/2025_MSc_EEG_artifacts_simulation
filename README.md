@@ -1,4 +1,4 @@
-# **MSc-Thesis:** Simulation of a selection of  EEG artifacts, including eye movements and power line noise
+# **MSc-Thesis:** Simulation of a selection of  EEG artifacts, including eye movements, power line noise, and drifts
 
 **Author:** *Maanik Marathe*
 
