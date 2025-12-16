@@ -12,5 +12,5 @@ Other files required in order to run the scripts/notebooks:
 - `HArtMuT_NYhead_*.mat` - Eye-source-point head-models based on HArtMuT, having the shape of the eyeballs being modified to be more spherical. 
 
 - `clipped_data_2025-07-16-pm.csv` - a snippet of data from the previously mentioned combined dataset. It contains synchronized Eye-tracking and EEG data, with one row corresponding to one channel. The first seven channels are eye-tracking channels; channels 1-7: x/y left, pupil left, x/y right, pupil right, DIN. The remaining channels contain the corresponding EEG data.
-```
+
 
