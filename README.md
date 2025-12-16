@@ -9,15 +9,34 @@
 ## Project Description
 Given a set of chosen EEG artifacts (eye movement, power line noise and electrode drift), we try to first understand their characteristics and then simulate them. The simulation should be implemented in a way that is standardized and compatible with UnfoldSim.jl, an existing open-source EEG simulation package. It should also provide a format for specifying the higher-level properties of the artifact simulation (e.g. onset, frequency of occurrence, correlation with other artifacts, etc).
 
+The thesis report in PDF format is located in the folder `report/thesis`. The typst source files used to build the PDF are in the `report/typst-template` folder, with the main thesis content contained in `main.typ`. 
+
+Along with the current repository, a fork of the UnfoldSim.jl repository is also relevant to the thesis: the artifact simulation code developed for this thesis has been directly integrated into this fork in order to ensure compatibility of the new code with the existing UnfoldSim.jl package and it is planned to eventually integrate this code into UnfoldSim.jl itself. The fork can be found at https://github.com/maanikmarathe/UnfoldSim.jl/tree/report-submission .
+
 ## Bibliography
 See `report/typst-template/refs.bib`.
 
 ## Instruction for a new student
->If a fellow student wants to reproduce all your results. What scripts, in which order, with which data need to be run?
->
->Be as specific as possible. Plan to spend **at least 1h** on this.
->
->Optional: Add a pipeline plot in which the different steps are displayed together with the corresponding scripts.
+
+You will need to install Revise.jl and add UnfoldSim as a development package, if you want to make changes in the UnfoldSim code and have the updated code available immediately to use in the julia REPL. For more details on this, see the [UnfoldSim.jl developer documentation](https://unfoldtoolbox.github.io/UnfoldSim.jl/stable/developer_docs/). Note that Revise.jl does not take into account changes made to types; if you update a type definition, you will need to close your current julia session and start a new one.
+
+### Setting up the thesis repository
+- Clone this thesis git repository into a folder, say `2025_MSc_EEG_artifacts_simulation`. Run `julia` from this folder.  
+
+- Activate the environment: `] activate .`
+
+- The very first time, add UnfoldSim as a development package. Check that the package has been successfully added by running `] st` and making sure that the path for UnfoldSim points to the appropriate `dev/UnfoldSim` folder.
+
+- To run one of the Pluto notebooks, you can start Pluto: `julia> using Pluto; Pluto.run(host="0.0.0.0", port=1234, launch_browser=false)` to run it on localhost:1234 without launching the browser (for example).
+
+- To run a ready-made simulation, call `UnfoldSim.az_simulation()`. Similarly, to get an example snippet of data including eye movements, call `UnfoldSim.example_data_eyemovements()` or to import the HArtMuT-based forward model of the eye, you can call `UnfoldSim.import_eyemodel()`.
+
+### Developing UnfoldSim artifact simulation code
+
+- Clone the UnfoldSim fork containing the artifact simulation code: `git clone https://github.com/maanikmarathe/UnfoldSim.jl.git`  
+- Start Julia, activate the environment, and add UnfoldSim as a development package. For the latter, provide the folder path into which the UnfoldSim fork was cloned. 
+- `julia> using UnfoldSim` will give you access to UnfoldSim.
+
 
 ## Overview of Folder Structure 
 
@@ -51,8 +70,8 @@ See `report/typst-template/refs.bib`.
 │   └── runtests.jl  <- Main test file
 │   └── setup.jl     <- Setup test environment
 │
-├── README.md        <- Top-level README. A fellow student needs to be able to
-|   |                   continue your project. Think about her!!
+├── README.md        <- Top-level README.
+|   |                   
 |
 ├── .gitignore       <- focused on Julia, but some Matlab things as well
 │
@@ -61,5 +80,3 @@ See `report/typst-template/refs.bib`.
 └── (Requirements.txt)<- in case of python project - can also be an anaconda file, MakeFile etc.
                         
 ```
-
-\*Instead of having a separate *notebooks* folder, you can also delete it and integrate your notebooks in the scripts folder. However, notebooks should always be marked by adding `nb_` in front of the file name.
